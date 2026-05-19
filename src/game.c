@@ -1,7 +1,7 @@
 #include "game.h"
 #include "raylib.h"
 
-void DrawTile(int x, int y, char symbol, Camera cam) {
+void DrawTile(int x, int y, char symbol, GameCamera cam) {
     // 세계 좌표 -> 화면 좌표 변환 (카메라 오프셋 적용)
     int screenX = (x - cam.x) * TILE_SIZE;
     int screenY = (y - cam.y) * TILE_SIZE;

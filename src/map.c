@@ -12,7 +12,7 @@ void InitMap(Map *map) {
     }
 }
 
-void DrawMap(const Map *map, Camera cam) {
+void DrawMap(const Map *map, GameCamera cam) {
     for (int y = 0; y < MAP_HEIGHT; y++) {
         for (int x = 0; x < MAP_WIDTH; x++) {
             DrawTile(x, y, (char)map->tiles[y][x], cam);

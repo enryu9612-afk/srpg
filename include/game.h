@@ -9,12 +9,12 @@
 
 #define TILE_SIZE 20
 
-// 카메라 오프셋 구조체
+// 이름을 GameCamera로 변경하여 raylib의 Camera와 충돌 방지
 typedef struct {
     int x;
     int y;
-} Camera;
+} GameCamera;
 
-void DrawTile(int x, int y, char symbol, Camera cam);
+void DrawTile(int x, int y, char symbol, GameCamera cam);
 
 #endif

@@ -3,7 +3,6 @@
 
 #include "game.h"
 
-// 화면보다 훨씬 큰 맵 크기 설정
 #define MAP_WIDTH 100
 #define MAP_HEIGHT 100
 
@@ -19,6 +18,6 @@ typedef struct {
 } Map;
 
 void InitMap(Map *map);
-void DrawMap(const Map *map, Camera cam);
+void DrawMap(const Map *map, GameCamera cam);
 
 #endif
