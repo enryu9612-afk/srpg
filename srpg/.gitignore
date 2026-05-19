@@ -1,5 +1,0 @@
-# Build artifacts
-build/
-*.o
-*.out
-*.exe
