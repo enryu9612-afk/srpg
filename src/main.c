@@ -1,22 +1,31 @@
+#include "raylib.h"
 #include "game.h"
-#include <stdio.h>
+#include "map.h"
+#include "player.h"
 
 int main(void) {
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Roguelike SRPG - Render Verification");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Roguelike SRPG");
     SetTargetFPS(60);
 
+    Map gameMap;
+    InitMap(&gameMap);
+
+    Player player;
+    InitPlayer(&player, 5, 5); // 시작 위치 (5, 5)
+
     while (!WindowShouldClose()) {
+        // 1. 입력 처리 (Input)
+        if (IsKeyPressed(KEY_UP))    MovePlayer(&player, 0, -1, &gameMap);
+        if (IsKeyPressed(KEY_DOWN))  MovePlayer(&player, 0, 1, &gameMap);
+        if (IsKeyPressed(KEY_LEFT))  MovePlayer(&player, -1, 0, &gameMap);
+        if (IsKeyPressed(KEY_RIGHT)) MovePlayer(&player, 1, 0, &gameMap);
+
+        // 2. 렌더링 (Rendering)
         BeginDrawing();
         ClearBackground(BLACK);
 
-        // 3x3 크기의 # 문자 사각형 그리기 테스트
-        for (int x = 10; x < 13; x++) {
-            for (int y = 10; y < 13; y++) {
-                DrawTile(x, y, '#');
-            }
-        }
-
-        DrawText("Rendering 3x3 grid test", 10, 10, 20, GRAY);
+        DrawMap(&gameMap);
+        DrawTile(player.x, player.y, player.symbol);
 
         EndDrawing();
     }
