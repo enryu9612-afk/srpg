@@ -1,10 +1,15 @@
 #include "game.h"
+#include "raylib.h"
 
-void DrawTile(int x, int y, char symbol) {
-    // 그리드 좌표 (x, y)를 픽셀 좌표로 변환
-    int pixelX = x * TILE_SIZE;
-    int pixelY = y * TILE_SIZE;
+void DrawTile(int x, int y, char symbol, Camera cam) {
+    // 세계 좌표 -> 화면 좌표 변환 (카메라 오프셋 적용)
+    int screenX = (x - cam.x) * TILE_SIZE;
+    int screenY = (y - cam.y) * TILE_SIZE;
 
-    // 문자를 출력 (심볼을 문자열로 변환하여 출력)
-    DrawText(TextFormat("%c", symbol), pixelX, pixelY, TILE_SIZE, RAYWHITE);
+    // 화면 범위 밖의 타일은 그리지 않음 (최적화)
+    if (screenX < 0 || screenX >= SCREEN_WIDTH || screenY < 0 || screenY >= GAME_HEIGHT) {
+        return;
+    }
+
+    DrawText(TextFormat("%c", symbol), screenX, screenY, TILE_SIZE, WHITE);
 }

@@ -3,8 +3,9 @@
 
 #include "game.h"
 
-#define MAP_WIDTH 40
-#define MAP_HEIGHT 25
+// 화면보다 훨씬 큰 맵 크기 설정
+#define MAP_WIDTH 100
+#define MAP_HEIGHT 100
 
 typedef enum {
     TILE_FLOOR = ' ',
@@ -18,6 +19,6 @@ typedef struct {
 } Map;
 
 void InitMap(Map *map);
-void DrawMap(const Map *map);
+void DrawMap(const Map *map, Camera cam);
 
 #endif
