@@ -18,7 +18,7 @@ set LDFLAGS=-L"C:/raylib/lib" -lraylib -lgdi32 -lwinmm
 if %errorlevel% equ 0 (
     echo [Build Successful!]
     echo Running srpg.exe...
-    ./srpg.exe
+    srpg.exe
 ) else (
     echo [Build Failed!]
     pause
