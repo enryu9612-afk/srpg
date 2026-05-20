@@ -15,7 +15,7 @@ void InitEntity(Entity *e, int id, EntityType type, int x, int y, char symbol, i
     e->atk = 10.0f * powf(1.2f, level - 1);
     e->hp_max = 100 * (int)powf(1.2f, level - 1);
     e->hp_cur = e->hp_max;
-    e->sp_max = 50; // 기초 SP
+    e->sp_max = 50;
     e->sp_cur = e->sp_max;
     e->def = 5.0f;
     e->magic_res = 5.0f;
@@ -98,7 +98,7 @@ float GetEyeBonus(int level) {
 
 float GetEarBonus(int level) {
     float bonuses[] = {0.0f, 0.10f, 0.25f, 0.45f, 0.70f, 1.00f};
-    return (level >= 0 && level <= 5) ? bonuses[level] : 0.0f,
+    return (level >= 0 && level <= 5) ? bonuses[level] : 0.0f;
 }
 
 float GetHandBonus(int level) {

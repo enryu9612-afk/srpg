@@ -52,7 +52,6 @@ int main(void) {
     
     int targetX = 0, targetY = 0;
     Entity *selected_target = NULL;
-    Equipment default_sword = {WEAPON_SWORD, 1, 10.0f, 0.0f, 0.0f};
 
     while (!WindowShouldClose()) {
         float delta = GetFrameTime();
@@ -77,22 +76,14 @@ int main(void) {
                 targetY = active->base.y;
             }
             if (IsKeyPressed(KEY_ENTER)) {
-                for(int i = 0; i < party.count; i++) UpdateStatusEffects(&party->members[i].base);
+                for(int i = 0; i < party.count; i++) UpdateStatusEffects(&party.members[i].base);
                 for(int i = 0; i < 10; i++) UpdateStatusEffects(&enemies[i]);
                 current_state = STATE_ENEMY_TURN;
                 AddLog("--- Enemy Turn Starts ---");
             }
             if (active->base.x >= MAP_WIDTH - 2 && active->base.y >= MAP_HEIGHT - 2) {
                 TransitionToNextFloor(&fm, &party);
-                
-                // [추가] 층 타입에 따른 상태 전환
-                if (fm.current_type == FLOOR_REST) {
-                    current_state = STATE_SHOP;
-                    OpenShop(&party);
-                } else {
-                    SpawnEnemies(enemies, 5, &fm.current_map);
-                    current_state = STATE_MOVE;
-                }
+                SpawnEnemies(enemies, 5, &fm.current_map);
                 AddLog("Descending to the next floor...");
             }
         } else if (current_state == STATE_TARGETING) {
@@ -134,12 +125,9 @@ int main(void) {
             current_state = STATE_MOVE;
             AddLog("--- Your Turn Starts ---");
         } else if (current_state == STATE_SHOP) {
-            // 상점 모드: 숫자키 1, 2, 3으로 구매 시도
             if (IsKeyPressed(KEY_ONE)) BuyItemFromShop(&party, 0);
             if (IsKeyPressed(KEY_TWO)) BuyItemFromShop(&party, 1);
             if (IsKeyPressed(KEY_THREE)) BuyItemFromShop(&party, 2);
-            
-            // ESC나 Enter로 상점 나가기
             if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE)) {
                 current_state = STATE_MOVE;
                 AddLog("Left the shop.");
@@ -159,7 +147,7 @@ int main(void) {
         ClearBackground(BLACK);
         DrawMap(&fm.current_map, cam);
         for (int i = 0; i < party.count; i++) {
-            DrawTile(party->members[i].base.x, party->members[i].base.y, party->members[i].base.symbol, cam);
+            DrawTile(party.members[i].base.x, party.members[i].base.y, party.members[i].base.symbol, cam);
         }
         for (int i = 0; i < 10; i++) {
             if (enemies[i].is_alive) {
@@ -170,6 +158,7 @@ int main(void) {
             DrawTile(targetX, targetY, 'X', cam);
         }
 
+        DrawWorldItems(cam);
         DrawFloatingTexts(cam);
         const char* stateStr = (current_state == STATE_MOVE) ? "MOVE" : (current_state == STATE_TARGETING ? "TARGETING" : (current_state == STATE_ENEMY_TURN ? "ENEMY TURN" : "SHOP"));
         DrawUI(active, &global_log, stateStr);
