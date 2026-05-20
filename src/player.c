@@ -20,6 +20,7 @@ void InitParty(Party *party) {
         party->members[i].weapon = NULL;
         party->members[i].armor = NULL;
         party->members[i].accessory = NULL;
+        party->members[i].gold = 100; // 시작 골드 설정 (예: 100g)
 
         party->members[i].skill_count = 1;
         strcpy(party->members[i].skills[0].name, "Smite I");
