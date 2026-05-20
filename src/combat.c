@@ -2,6 +2,7 @@
 #include "entity.h"
 #include "ui.h"
 #include "item.h"
+#include "world_item.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>

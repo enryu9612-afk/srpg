@@ -10,8 +10,6 @@ int shop_inventory_count = 0;
 void InitShop() {
     shop_inventory_count = 3;
     
-    // GDD: 소모품 (SP 회복, 공격력 증가, 체력 회복 등)
-    // 임시로 아이템 시스템의 Item 구조체를 활용하여 생성
     Item sp_potion = {0};
     sp_potion.category = ITEM_CONSUMABLE;
     strcpy(sp_potion.name, "SP Potion");
@@ -35,9 +33,6 @@ void InitShop() {
 }
 
 void OpenShop(Party *party) {
-    // 휴식층에서 호출될 상점 UI 로직
-    // 실제로는 main 루프에서 STATE_SHOP 등으로 관리해야 하지만, 
-    // 여기서는 개념적 구현과 로그/UI 출력을 담당
     AddLog("--- Welcome to the Rest Floor Shop! ---");
     AddLog("Available Items:");
     for (int i = 0; i < shop_inventory_count; i++) {
@@ -51,14 +46,10 @@ void BuyItemFromShop(Party *party, int shop_idx) {
     if (shop_idx < 0 || shop_idx >= shop_inventory_count) return;
     
     ShopItem *s_item = &shop_inventory[shop_idx];
-    
-    // 골드 확인 (파티 첫 번째 유닛의 골드 기준)
     if (party->members[0].gold < s_item->price) {
         AddLog("Not enough gold!");
         return;
     }
-    
-    // 인벤토리 공간 확인
     if (party->inventory_count >= MAX_INVENTORY) {
         AddLog("Inventory full!");
         return;
@@ -77,8 +68,6 @@ void SellItemToShop(Party *party, int inv_idx) {
     
     Item *item = &party->inventory[inv_idx];
     int sell_price = 0;
-    
-    // 등급 및 카테고리에 따른 판매가 책정 (단순 구현)
     if (item->category == ITEM_EQUIPMENT) {
         sell_price = (item->rarity + 1) * 20;
     } else {
@@ -86,8 +75,6 @@ void SellItemToShop(Party *party, int inv_idx) {
     }
     
     party->members[0].gold += sell_price;
-    
-    // 인벤토리에서 제거 (뒤에서 앞으로 당기기)
     for (int i = inv_idx; i < party->inventory_count - 1; i++) {
         party->inventory[i] = party->inventory[i+1];
     }

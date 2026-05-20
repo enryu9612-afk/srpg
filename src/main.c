@@ -107,7 +107,8 @@ int main(void) {
 
             if (IsKeyPressed(KEY_Z)) {
                 if (selected_target) {
-                    if (UseSkill(active, selected_target, 0)) {
+                    // PlayerUnit* (Operator*)로 명시적 캐스팅
+                    if (UseSkill((Operator*)active, selected_target, 0)) {
                         // 성공
                     } else {
                         AddLog("Skill failed!");
@@ -127,7 +128,7 @@ int main(void) {
         } else if (current_state == STATE_SHOP) {
             if (IsKeyPressed(KEY_ONE)) BuyItemFromShop(&party, 0);
             if (IsKeyPressed(KEY_TWO)) BuyItemFromShop(&party, 1);
-            if (IsKeyPressed(KEY_THREE)) BuyItemFromShop(&party, 2);
+            if (IsKeyPressed(KEY_THREE)) BuyItemKFromShop(&party, 2);
             if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE)) {
                 current_state = STATE_MOVE;
                 AddLog("Left the shop.");

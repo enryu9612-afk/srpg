@@ -7,16 +7,8 @@
 #define MAX_PARTY_MEMBERS 3
 #define MAX_INVENTORY 10
 
-typedef struct {
-    Entity base;
-    int exp;
-    int gold;
-    
-    // 장착 중인 장비
-    Item *weapon;
-    Item *armor;
-    Item *accessory;
-} PlayerUnit;
+// GDD의 '오퍼레이터' 정의: 기본 엔티티 스탯 + 5대 기관 스탯 + 스킬
+typedef Operator PlayerUnit; 
 
 typedef struct {
     PlayerUnit members[MAX_PARTY_MEMBERS];
