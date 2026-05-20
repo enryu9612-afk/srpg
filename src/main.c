@@ -8,6 +8,7 @@
 #include "ui.h"
 #include "skill.h"
 #include "floor.h"
+#include "world_item.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -19,21 +20,17 @@ typedef enum {
 } ControlState;
 
 int main(void) {
-    srand(time(NULL)); // 랜덤 시드 초기화
+    srand(time(NULL));
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Roguelike SRPG - Strategic Combat");
     SetTargetFPS(60);
 
-    // 층 관리자 도입
     FloorManager fm;
     InitFloorManager(&fm);
 
     Party party;
     InitParty(&party);
 
-    // 현재 층의 적들을 관리할 배열
     Entity enemies[10]; 
-    
-    // 적 생성 함수 (임시)
     void SpawnEnemies(Entity *enemies, int count, Map *map) {
         for(int i = 0; i < count; i++) {
             int rx, ry;
@@ -68,6 +65,9 @@ int main(void) {
             if (IsKeyPressed(KEY_LEFT))  MoveActiveUnit(&party, -1, 0, &fm.current_map);
             if (IsKeyPressed(KEY_RIGHT)) MoveActiveUnit(&party, 1, 0, &fm.current_map);
 
+            // [추가] 아이템 습득 체크
+            PickUpItem(&party, active->base.x, active->base.y);
+
             if (IsKeyPressed(KEY_Z)) {
                 current_state = STATE_TARGETING;
                 targetX = active->base.x;
@@ -79,8 +79,6 @@ int main(void) {
                 current_state = STATE_ENEMY_TURN;
                 AddLog("--- Enemy Turn Starts ---");
             }
-            
-            // [추가] 계단/출구 도달 시 다음 층으로 이동 (임시: 맵 오른쪽 하단 끝에 도달 시)
             if (active->base.x >= MAP_WIDTH - 2 && active->base.y >= MAP_HEIGHT - 2) {
                 TransitionToNextFloor(&fm, &party);
                 SpawnEnemies(enemies, 5, &fm.current_map);
@@ -150,6 +148,7 @@ int main(void) {
             DrawTile(targetX, targetY, 'X', cam);
         }
 
+        DrawWorldItems(cam);
         DrawFloatingTexts(cam);
         const char* stateStr = (current_state == STATE_MOVE) ? "MOVE" : (current_state == STATE_TARGETING ? "TARGETING" : "ENEMY TURN");
         DrawUI(active, &global_log, stateStr);
