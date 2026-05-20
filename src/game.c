@@ -11,5 +11,6 @@ void DrawTile(int x, int y, char symbol, Color color, GameCamera cam) {
         return;
     }
 
-    DrawText(TextFormat("%c", symbol), screenX, screenY, TILE_SIZE, color);
+    // 가변폭 폰트 뭉침 방지를 위해 x 좌표에 +2 픽셀 여백 추가
+    DrawText(TextFormat("%c", symbol), screenX + 2, screenY, TILE_SIZE, color);
 }

@@ -50,24 +50,33 @@ void CreateRegularMap(Map *map) {
         }
     }
 
-    // 아주 단순한 랜덤 걷기(Random Walk) 알고리즘으로 통로 생성
-    int curX = MAP_WIDTH / 2;
-    int curY = MAP_HEIGHT / 2;
-    int tiles_to_dig = 1500; // 맵의 약 15%를 바닥으로 생성하여 더 쾌적하게 수정
+    // 5명의 워커가 서로 다른 지점에서 시작하여 맵을 뚫음
+    int walkerCount = 5;
+    int tiles_per_walker = 600; 
 
-    while(tiles_to_dig > 0) {
-        map->tiles[curY][curX] = TILE_FLOOR;
-        tiles_to_dig--;
+    for (int w = 0; w < walkerCount; w++) {
+        int curX = 1 + (rand() % (MAP_WIDTH - 2));
+        int curY = 1 + (rand() % (MAP_HEIGHT - 2));
+        int dug = 0;
 
-        int dir = rand() % 4;
-        if(dir == 0 && curY > 1) curY--;
-        else if(dir == 1 && curY < MAP_HEIGHT - 2) curY++;
-        else if(dir == 2 && curX > 1) curX--;
-        else if(dir == 3 && curX < MAP_WIDTH - 2) curX++;
+        while(dug < tiles_per_walker) {
+            map->tiles[curY][curX] = TILE_FLOOR;
+            dug++;
+
+            int dir = rand() % 4;
+            if(dir == 0 && curY > 1) curY--;
+            else if(dir == 1 && curY < MAP_HEIGHT - 2) curY++;
+            else if(dir == 2 && curX > 1) curX--;
+            else if(dir == 3 && curX < MAP_WIDTH - 2) curX++;
+        }
     }
     
-    // 플레이어 시작점 확보
-    map->tiles[1][1] = TILE_FLOOR;
+    // 플레이어 시작점 및 주변 확보
+    for(int y = 0; y < 3; y++) {
+        for(int x = 0; x < 3; x++) {
+            map->tiles[1+y][1+x] = TILE_FLOOR;
+        }
+    }
 }
 
 void CreateBossMap(Map *map) {
