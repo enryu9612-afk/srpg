@@ -9,6 +9,7 @@
 #include "skill.h"
 #include "floor.h"
 #include "world_item.h"
+#include "shop.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -16,7 +17,8 @@
 typedef enum {
     STATE_MOVE,
     STATE_TARGETING,
-    STATE_ENEMY_TURN
+    STATE_ENEMY_TURN,
+    STATE_SHOP
 } ControlState;
 
 int main(void) {
@@ -29,6 +31,8 @@ int main(void) {
 
     Party party;
     InitParty(&party);
+    
+    InitShop();
 
     Entity enemies[10]; 
     void SpawnEnemies(Entity *enemies, int count, Map *map) {
@@ -65,7 +69,6 @@ int main(void) {
             if (IsKeyPressed(KEY_LEFT))  MoveActiveUnit(&party, -1, 0, &fm.current_map);
             if (IsKeyPressed(KEY_RIGHT)) MoveActiveUnit(&party, 1, 0, &fm.current_map);
 
-            // [추가] 아이템 습득 체크
             PickUpItem(&party, active->base.x, active->base.y);
 
             if (IsKeyPressed(KEY_Z)) {
@@ -81,7 +84,15 @@ int main(void) {
             }
             if (active->base.x >= MAP_WIDTH - 2 && active->base.y >= MAP_HEIGHT - 2) {
                 TransitionToNextFloor(&fm, &party);
-                SpawnEnemies(enemies, 5, &fm.current_map);
+                
+                // [추가] 층 타입에 따른 상태 전환
+                if (fm.current_type == FLOOR_REST) {
+                    current_state = STATE_SHOP;
+                    OpenShop(&party);
+                } else {
+                    SpawnEnemies(enemies, 5, &fm.current_map);
+                    current_state = STATE_MOVE;
+                }
                 AddLog("Descending to the next floor...");
             }
         } else if (current_state == STATE_TARGETING) {
@@ -122,6 +133,17 @@ int main(void) {
             ExecuteEnemyTurn(enemies, 10, &party, &fm.current_map);
             current_state = STATE_MOVE;
             AddLog("--- Your Turn Starts ---");
+        } else if (current_state == STATE_SHOP) {
+            // 상점 모드: 숫자키 1, 2, 3으로 구매 시도
+            if (IsKeyPressed(KEY_ONE)) BuyItemFromShop(&party, 0);
+            if (IsKeyPressed(KEY_TWO)) BuyItemFromShop(&party, 1);
+            if (IsKeyPressed(KEY_THREE)) BuyItemFromShop(&party, 2);
+            
+            // ESC나 Enter로 상점 나가기
+            if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE)) {
+                current_state = STATE_MOVE;
+                AddLog("Left the shop.");
+            }
         }
 
         cam.x = active->base.x - (SCREEN_WIDTH / (2 * TILE_SIZE));
@@ -148,9 +170,8 @@ int main(void) {
             DrawTile(targetX, targetY, 'X', cam);
         }
 
-        DrawWorldItems(cam);
         DrawFloatingTexts(cam);
-        const char* stateStr = (current_state == STATE_MOVE) ? "MOVE" : (current_state == STATE_TARGETING ? "TARGETING" : "ENEMY TURN");
+        const char* stateStr = (current_state == STATE_MOVE) ? "MOVE" : (current_state == STATE_TARGETING ? "TARGETING" : (current_state == STATE_ENEMY_TURN ? "ENEMY TURN" : "SHOP"));
         DrawUI(active, &global_log, stateStr);
 
         EndDrawing();
