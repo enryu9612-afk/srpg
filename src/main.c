@@ -5,8 +5,12 @@
 #include "entity.h"
 #include "combat.h"
 #include "ai.h"
+#include "ui.h"
+#include "skill.h"
+#include "floor.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 typedef enum {
     STATE_MOVE,
@@ -15,19 +19,32 @@ typedef enum {
 } ControlState;
 
 int main(void) {
+    srand(time(NULL)); // 랜덤 시드 초기화
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Roguelike SRPG - Strategic Combat");
     SetTargetFPS(60);
 
-    Map gameMap;
-    InitMap(&gameMap);
+    // 층 관리자 도입
+    FloorManager fm;
+    InitFloorManager(&fm);
 
     Party party;
     InitParty(&party);
 
-    Entity enemies[5];
-    for(int i = 0; i < 5; i++) {
-        InitEntity(&enemies[i], 100 + i, ENTITY_MONSTER, 15 + (i * 2), 12, 'M', 1);
+    // 현재 층의 적들을 관리할 배열
+    Entity enemies[10]; 
+    
+    // 적 생성 함수 (임시)
+    void SpawnEnemies(Entity *enemies, int count, Map *map) {
+        for(int i = 0; i < count; i++) {
+            int rx, ry;
+            do {
+                rx = rand() % MAP_WIDTH;
+                ry = rand() % MAP_HEIGHT;
+            } while(map->tiles[ry][rx] != TILE_FLOOR);
+            InitEntity(&enemies[i], 100 + i, ENTITY_MONSTER, rx, ry, 'M', 1);
+        }
     }
+    SpawnEnemies(enemies, 5, &fm.current_map);
 
     GameCamera cam = {0, 0};
     ControlState current_state = STATE_MOVE;
@@ -37,19 +54,19 @@ int main(void) {
     Equipment default_sword = {WEAPON_SWORD, 1, 10.0f, 0.0f, 0.0f};
 
     while (!WindowShouldClose()) {
+        float delta = GetFrameTime();
         PlayerUnit *active = GetActiveUnit(&party);
 
-        // 1. 입력 처리
         if (IsKeyPressed(KEY_TAB)) {
             party.current_unit_idx = (party.current_unit_idx + 1) % party.count;
             current_state = STATE_MOVE;
         }
 
         if (current_state == STATE_MOVE) {
-            if (IsKeyPressed(KEY_UP))    MoveActiveUnit(&party, 0, -1, &gameMap);
-            if (IsKeyPressed(KEY_DOWN))  MoveActiveUnit(&party, 0, 1, &gameMap);
-            if (IsKeyPressed(KEY_LEFT))  MoveActiveUnit(&party, -1, 0, &gameMap);
-            if (IsKeyPressed(KEY_RIGHT)) MoveActiveUnit(&party, 1, 0, &gameMap);
+            if (IsKeyPressed(KEY_UP))    MoveActiveUnit(&party, 0, -1, &fm.current_map);
+            if (IsKeyPressed(KEY_DOWN))  MoveActiveUnit(&party, 0, 1, &fm.current_map);
+            if (IsKeyPressed(KEY_LEFT))  MoveActiveUnit(&party, -1, 0, &fm.current_map);
+            if (IsKeyPressed(KEY_RIGHT)) MoveActiveUnit(&party, 1, 0, &fm.current_map);
 
             if (IsKeyPressed(KEY_Z)) {
                 current_state = STATE_TARGETING;
@@ -57,7 +74,17 @@ int main(void) {
                 targetY = active->base.y;
             }
             if (IsKeyPressed(KEY_ENTER)) {
+                for(int i = 0; i < party.count; i++) UpdateStatusEffects(&party->members[i].base);
+                for(int i = 0; i < 10; i++) UpdateStatusEffects(&enemies[i]);
                 current_state = STATE_ENEMY_TURN;
+                AddLog("--- Enemy Turn Starts ---");
+            }
+            
+            // [추가] 계단/출구 도달 시 다음 층으로 이동 (임시: 맵 오른쪽 하단 끝에 도달 시)
+            if (active->base.x >= MAP_WIDTH - 2 && active->base.y >= MAP_HEIGHT - 2) {
+                TransitionToNextFloor(&fm, &party);
+                SpawnEnemies(enemies, 5, &fm.current_map);
+                AddLog("Descending to the next floor...");
             }
         } else if (current_state == STATE_TARGETING) {
             if (IsKeyPressed(KEY_UP))    targetY--;
@@ -71,7 +98,7 @@ int main(void) {
             if (targetY >= MAP_HEIGHT) targetY = MAP_HEIGHT - 1;
 
             selected_target = NULL;
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < 10; i++) {
                 if (enemies[i].is_alive && enemies[i].x == targetX && enemies[i].y == targetY) {
                     selected_target = &enemies[i];
                     break;
@@ -79,9 +106,14 @@ int main(void) {
             }
 
             if (IsKeyPressed(KEY_Z)) {
-                if (selected_target && CanAttack(&active->base, selected_target, &default_sword)) {
-                    ResolveCombat(&active->base, selected_target, &default_sword, ATTACK_PHYSICAL, active);
-                    printf("Attacked Enemy! Damage dealt.\n");
+                if (selected_target) {
+                    if (UseSkill(active, selected_target, 0)) {
+                        // 성공
+                    } else {
+                        AddLog("Skill failed!");
+                    }
+                } else {
+                    AddLog("No target selected!");
                 }
                 current_state = STATE_MOVE;
             }
@@ -89,12 +121,11 @@ int main(void) {
                 current_state = STATE_MOVE;
             }
         } else if (current_state == STATE_ENEMY_TURN) {
-            // 적군 턴 실행 (Map 정보 전달)
-            ExecuteEnemyTurn(enemies, 5, &party, &gameMap);
+            ExecuteEnemyTurn(enemies, 10, &party, &fm.current_map);
             current_state = STATE_MOVE;
+            AddLog("--- Your Turn Starts ---");
         }
 
-        // 2. 카메라 업데이트
         cam.x = active->base.x - (SCREEN_WIDTH / (2 * TILE_SIZE));
         cam.y = active->base.y - (GAME_HEIGHT / (2 * TILE_SIZE));
         if (cam.x < 0) cam.x = 0;
@@ -102,14 +133,15 @@ int main(void) {
         if (cam.x > MAP_WIDTH - (SCREEN_WIDTH / TILE_SIZE)) cam.x = MAP_WIDTH - (SCREEN_WIDTH / TILE_SIZE);
         if (cam.y > MAP_HEIGHT - (GAME_HEIGHT / TILE_SIZE)) cam.y = MAP_HEIGHT - (GAME_HEIGHT / TILE_SIZE);
 
-        // 3. 렌더링
+        UpdateFloatingTexts(delta);
+
         BeginDrawing();
         ClearBackground(BLACK);
-        DrawMap(&gameMap, cam);
+        DrawMap(&fm.current_map, cam);
         for (int i = 0; i < party.count; i++) {
-            DrawTile(party.members[i].base.x, party.members[i].base.y, party.members[i].base.symbol, cam);
+            DrawTile(party->members[i].base.x, party->members[i].base.y, party->members[i].base.symbol, cam);
         }
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 10; i++) {
             if (enemies[i].is_alive) {
                 DrawTile(enemies[i].x, enemies[i].y, enemies[i].symbol, cam);
             }
@@ -118,23 +150,9 @@ int main(void) {
             DrawTile(targetX, targetY, 'X', cam);
         }
 
-        // 하단 UI
-        DrawRectangle(0, GAME_HEIGHT, SCREEN_WIDTH, UI_HEIGHT, DARKGRAY);
-        DrawRectangleLines(0, GAME_HEIGHT, SCREEN_WIDTH, UI_HEIGHT, WHITE);
-        
-        char statusText[128];
+        DrawFloatingTexts(cam);
         const char* stateStr = (current_state == STATE_MOVE) ? "MOVE" : (current_state == STATE_TARGETING ? "TARGETING" : "ENEMY TURN");
-        sprintf(statusText, "Unit: %d | HP: %d/%d | State: %s", 
-                party.current_unit_idx + 1, active->base.hp_cur, active->base.hp_max, stateStr);
-        DrawText(statusText, 20, GAME_HEIGHT + 20, 20, RAYWHITE);
-
-        if (current_state == STATE_MOVE) {
-            DrawText("Cmd: [Arrows] Move | [TAB] Switch | [Z] Attack | [Enter] End Turn", 20, GAME_HEIGHT + 50, 20, LIGHTGRAY);
-        } else if (current_state == STATE_TARGETING) {
-            DrawText("Cmd: [Arrows] Target | [Z] Confirm | [X] Cancel", 20, GAME_HEIGHT + 50, 20, YELLOW);
-        } else {
-            DrawText("Enemies are moving...", 20, GAME_HEIGHT + 50, 20, RED);
-        }
+        DrawUI(active, &global_log, stateStr);
 
         EndDrawing();
     }

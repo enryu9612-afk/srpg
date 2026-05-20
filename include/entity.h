@@ -3,12 +3,34 @@
 
 #include "map.h"
 
+#define MAX_STATUS_EFFECTS 5
+#define MAX_SKILLS 3
+
 typedef enum {
     ENTITY_PLAYER,
     ENTITY_MONSTER
 } EntityType;
 
-// 모든 엔티티가 공통으로 가지는 스탯
+typedef enum {
+    STATUS_NONE,
+    STATUS_RAGE,
+    STATUS_HUNGER,
+    STATUS_SICKLY,
+    STATUS_BURN
+} StatusType;
+
+typedef struct {
+    StatusType type;
+    int duration;
+} StatusEffect;
+
+typedef struct {
+    char name[32];
+    int sp_cost;
+    float multiplier;
+    int level;
+} Skill;
+
 typedef struct {
     int id;
     EntityType type;
@@ -21,30 +43,37 @@ typedef struct {
     float acc;
     int hp_max;
     int hp_cur;
+    int sp_max; // 추가: SP 최대치
+    int sp_cur; // 추가: 현재 SP
     float def;
     float magic_res;
 
+    StatusEffect statuses[MAX_STATUS_EFFECTS];
     int is_alive;
 } Entity;
 
-// 오퍼레이터(플레이어 유닛) 전용 추가 스탯
 typedef struct {
     Entity base;
-    int eye;    // 눈: 명중률
-    int ear;    // 귀: 회피율
-    int tongue; // 혀: SP 소모 감소
-    int hand;   // 손: 크리티컬, 장비 효과
-    int heart;  // 심장: 공격력, 체력
+    int eye;
+    int ear;
+    int tongue;
+    int hand;
+    int heart;
+    Skill skills[MAX_SKILLS]; // 추가: 보유 스킬
+    int skill_count;
 } Operator;
 
 void InitEntity(Entity *e, int id, EntityType type, int x, int y, char symbol, int level);
 const char* StatToRoman(int level);
 
-// GDD 기반 스탯 보너스 헬퍼 함수
-float GetEyeBonus(int level);    // 명중률 보너스
-float GetEarBonus(int level);    // 회피율 보너스
-float GetHandBonus(int level);   // 크리/장비 보너스
-float GetHeartBonus(int level);  // 공격/체력 보너스
-int GetTongueBonus(int level);   // SP 소모 감소
+void AddStatusEffect(Entity *e, StatusType type, int duration);
+void UpdateStatusEffects(Entity *e);
+const char* GetStatusName(StatusType type);
+
+float GetEyeBonus(int level);
+float GetEarBonus(int level);
+float GetHandBonus(int level);
+float GetHeartBonus(int level);
+int GetTongueBonus(int level);
 
 #endif
