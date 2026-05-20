@@ -51,7 +51,7 @@ void DrawWorldItems(GameCamera cam) {
             Color itemColor = WHITE;
             if (world_items[i].item.rarity == RARITY_RARE) itemColor = GOLD;
             else if (world_items[i].item.rarity == RARITY_UNIQUE) itemColor = PURPLE;
-            else if (world_items[i].item.rarity == RARITY_ADVANCED) itemColor = CYAN;
+            else if (world_items[i].item.rarity == RARITY_ADVANCED) itemColor = SKYBLUE;
             
             DrawTile(world_items[i].x, world_items[i].y, '?', itemColor, cam);
         }
