@@ -17,9 +17,11 @@ set LDFLAGS=-L"C:/raylib/lib" -lraylib -lgdi32 -lwinmm
 %CC% %CFLAGS% -c src/floor.c -o src/floor.o
 %CC% %CFLAGS% -c src/world_item.c -o src/world_item.o
 %CC% %CFLAGS% -c src/shop.c -o src/shop.o
+%CC% %CFLAGS% -c src/ai.c -o src/ai.o
+%CC% %CFLAGS% -c src/item.c -o src/item.o
 
 :: Link
-%CC% src/main.o src/game.o src/map.o src/entity.o src/player.o src/combat.o src/ui.o src/skill.o src/floor.o src/world_item.o src/shop.o -o srpg.exe %LDFLAGS%
+%CC% src/main.o src/game.o src/map.o src/entity.o src/player.o src/combat.o src/ui.o src/skill.o src/floor.o src/world_item.o src/shop.o src/ai.o src/item.o -o srpg.exe %LDFLAGS%
 
 if %errorlevel% equ 0 (
     echo [Build Successful!]
