@@ -139,7 +139,7 @@ int main(void) {
         if (cam.x < 0) cam.x = 0;
         if (cam.y < 0) cam.y = 0;
         if (cam.x > MAP_WIDTH - (SCREEN_WIDTH / TILE_SIZE)) cam.x = MAP_WIDTH - (SCREEN_WIDTH / TILE_SIZE);
-        if (cam.y > MAP_HEIGHT - (GAME_HEIGHT / TILE_SIZE)) cam.y = MAP_HEIGHT - (GAME_HIGHT / TILE_SIZE); // 오타 수정: GAME_HIGHT -> GAME_HEIGHT
+        if (cam.y > MAP_HEIGHT - (GAME_HEIGHT / TILE_SIZE)) cam.y = MAP_HEIGHT - (GAME_HEIGHT / TILE_SIZE);
 
         UpdateFloatingTexts(delta);
 
@@ -147,15 +147,15 @@ int main(void) {
         ClearBackground(BLACK);
         DrawMap(&fm.current_map, cam);
         for (int i = 0; i < party.count; i++) {
-            DrawTile(party.members[i].base.x, party.members[i].base.y, party.members[i].base.symbol, cam);
+            DrawTile(party.members[i].base.x, party.members[i].base.y, party.members[i].base.symbol, WHITE, cam);
         }
         for (int i = 0; i < 10; i++) {
             if (enemies[i].is_alive) {
-                DrawTile(enemies[i].x, enemies[i].y, enemies[i].symbol, cam);
+                DrawTile(enemies[i].x, enemies[i].y, enemies[i].symbol, RED, cam);
             }
         }
         if (current_state == STATE_TARGETING) {
-            DrawTile(targetX, targetY, 'X', cam);
+            DrawTile(targetX, targetY, 'X', YELLOW, cam);
         }
 
         DrawWorldItems(cam);

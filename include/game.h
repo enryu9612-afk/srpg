@@ -15,6 +15,6 @@ typedef struct {
     int y;
 } GameCamera;
 
-void DrawTile(int x, int y, char symbol, GameCamera cam);
+void DrawTile(int x, int y, char symbol, Color color, GameCamera cam);
 
 #endif

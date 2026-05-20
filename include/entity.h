@@ -68,6 +68,7 @@ typedef struct {
     Item *weapon;
     Item *armor;
     Item *accessory;
+    int gold;
 } Operator;
 
 void InitEntity(Entity *e, int id, EntityType type, int x, int y, char symbol, int level);
