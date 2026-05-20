@@ -2,6 +2,7 @@
 #define ENTITY_H
 
 #include "map.h"
+#include "item.h" // Item 타입 사용을 위해 추가
 
 #define MAX_STATUS_EFFECTS 5
 #define MAX_SKILLS 3
@@ -43,8 +44,8 @@ typedef struct {
     float acc;
     int hp_max;
     int hp_cur;
-    int sp_max; // 추가: SP 최대치
-    int sp_cur; // 추가: 현재 SP
+    int sp_max;
+    int sp_cur;
     float def;
     float magic_res;
 
@@ -52,6 +53,7 @@ typedef struct {
     int is_alive;
 } Entity;
 
+// 오퍼레이터(플레이어 유닛) 전용 추가 스탯 및 장비
 typedef struct {
     Entity base;
     int eye;
@@ -59,8 +61,13 @@ typedef struct {
     int tongue;
     int hand;
     int heart;
-    Skill skills[MAX_SKILLS]; // 추가: 보유 스킬
+    Skill skills[MAX_SKILLS];
     int skill_count;
+
+    // 장비 슬롯 추가
+    Item *weapon;
+    Item *armor;
+    Item *accessory;
 } Operator;
 
 void InitEntity(Entity *e, int id, EntityType type, int x, int y, char symbol, int level);

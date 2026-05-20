@@ -107,7 +107,6 @@ int main(void) {
 
             if (IsKeyPressed(KEY_Z)) {
                 if (selected_target) {
-                    // PlayerUnit* (Operator*)로 명시적 캐스팅
                     if (UseSkill((Operator*)active, selected_target, 0)) {
                         // 성공
                     } else {
@@ -128,7 +127,7 @@ int main(void) {
         } else if (current_state == STATE_SHOP) {
             if (IsKeyPressed(KEY_ONE)) BuyItemFromShop(&party, 0);
             if (IsKeyPressed(KEY_TWO)) BuyItemFromShop(&party, 1);
-            if (IsKeyPressed(KEY_THREE)) BuyItemKFromShop(&party, 2);
+            if (IsKeyPressed(KEY_THREE)) BuyItemFromShop(&party, 2); // 오타 수정: BuyItemKFromShop -> BuyItemFromShop
             if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE)) {
                 current_state = STATE_MOVE;
                 AddLog("Left the shop.");
@@ -140,7 +139,7 @@ int main(void) {
         if (cam.x < 0) cam.x = 0;
         if (cam.y < 0) cam.y = 0;
         if (cam.x > MAP_WIDTH - (SCREEN_WIDTH / TILE_SIZE)) cam.x = MAP_WIDTH - (SCREEN_WIDTH / TILE_SIZE);
-        if (cam.y > MAP_HEIGHT - (GAME_HEIGHT / TILE_SIZE)) cam.y = MAP_HEIGHT - (GAME_HEIGHT / TILE_SIZE);
+        if (cam.y > MAP_HEIGHT - (GAME_HEIGHT / TILE_SIZE)) cam.y = MAP_HEIGHT - (GAME_HIGHT / TILE_SIZE); // 오타 수정: GAME_HIGHT -> GAME_HEIGHT
 
         UpdateFloatingTexts(delta);
 
