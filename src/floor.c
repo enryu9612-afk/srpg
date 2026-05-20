@@ -53,7 +53,7 @@ void CreateRegularMap(Map *map) {
     // 아주 단순한 랜덤 걷기(Random Walk) 알고리즘으로 통로 생성
     int curX = MAP_WIDTH / 2;
     int curY = MAP_HEIGHT / 2;
-    int tiles_to_dig = 400; // 맵의 약 4%를 뚫음
+    int tiles_to_dig = 1500; // 맵의 약 15%를 바닥으로 생성하여 더 쾌적하게 수정
 
     while(tiles_to_dig > 0) {
         map->tiles[curY][curX] = TILE_FLOOR;
