@@ -46,7 +46,9 @@ void BuyItemFromShop(Party *party, int shop_idx) {
     if (shop_idx < 0 || shop_idx >= shop_inventory_count) return;
     
     ShopItem *s_item = &shop_inventory[shop_idx];
-    if (party->members[0].gold < s_item->price) {
+    // 현재 활성화된 파티원의 골드를 사용
+    int active_idx = party->current_unit_idx;
+    if (party->members[active_idx].gold < s_item->price) {
         AddLog("Not enough gold!");
         return;
     }
@@ -55,11 +57,12 @@ void BuyItemFromShop(Party *party, int shop_idx) {
         return;
     }
     
-    party->members[0].gold -= s_item->price;
+    party->members[active_idx].gold -= s_item->price;
     party->inventory[party->inventory_count++] = s_item->item;
     
     char logMsg[128];
-    sprintf(logMsg, "Bought %s for %dg!", s_item->item.name, s_item->price);
+    sprintf(logMsg, "Bought %s for %dg! (Remaining: %dg)", 
+            s_item->item.name, s_item->price, party->members[active_idx].gold);
     AddLog(logMsg);
 }
 

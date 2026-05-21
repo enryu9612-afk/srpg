@@ -4,7 +4,9 @@ CFLAGS = -Wall -Wextra -std=c11 -Iinclude -I"C:/raylib/include"
 LDFLAGS = -L"C:/raylib/lib" -lraylib -lgdi32 -lwinmm
 
 # Objects
-OBJS = src/main.o src/game.o src/map.o src/entity.o src/player.o
+OBJS = src/main.o src/game.o src/map.o src/entity.o src/player.o \
+       src/combat.o src/ui.o src/skill.o src/floor.o \
+       src/world_item.o src/shop.o src/ai.o src/item.o
 
 # Target
 TARGET = srpg.exe

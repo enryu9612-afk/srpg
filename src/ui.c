@@ -15,11 +15,14 @@ void AddLog(const char* format, ...) {
     vsnprintf(buffer, MAX_LOG_LENGTH, format, args);
     va_end(args);
 
+    // 오래된 메시지를 앞으로 당기고 (0번이 가장 오래된 메시지)
     for (int i = 0; i < MAX_LOG_MESSAGES - 1; i++) {
-        sprintf(global_log.messages[i], "%s", global_log.messages[i+1]);
+        strncpy(global_log.messages[i], global_log.messages[i + 1], MAX_LOG_LENGTH);
+        global_log.messages[i][MAX_LOG_LENGTH - 1] = '\0';
     }
-    global_log.messages[MAX_LOG_MESSAGES - 1][0] = '\0';
-    sprintf(global_log.messages[MAX_LOG_MESSAGES - 1], "%s", buffer);
+    // 가장 마지막 칸에 새 메시지를 삽입 (가장 최신 메시지)
+    strncpy(global_log.messages[MAX_LOG_MESSAGES - 1], buffer, MAX_LOG_LENGTH);
+    global_log.messages[MAX_LOG_MESSAGES - 1][MAX_LOG_LENGTH - 1] = '\0';
     global_log.count++;
 }
 
@@ -55,8 +58,8 @@ void DrawFloatingTexts(GameCamera cam) {
         if (floating_texts[i].active) {
             // 월드 좌표를 화면 좌표로 변환 (카메라 오프셋 적용)
             // 타일 크기 고려하여 텍스트 배치
-            float screenX = (floating_texts[i].x * TILE_SIZE) - cam.x;
-            float screenY = (floating_texts[i].y * TILE_SIZE) - cam.y;
+            float screenX = (floating_texts[i].x - (float)cam.x) * TILE_SIZE;
+            float screenY = (floating_texts[i].y - (float)cam.y) * TILE_SIZE;
             
             DrawText(floating_texts[i].text, (int)screenX, (int)screenY, 20, floating_texts[i].color);
         }

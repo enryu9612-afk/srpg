@@ -68,6 +68,13 @@ void UpdateStatusEffects(Entity *e) {
             char logMsg[64];
             sprintf(logMsg, "Unit %d took %d Burn damage!", e->id, damage);
             AddLog(logMsg);
+
+            // 번 데미지로 사망한 경우 즉시 처리
+            if(e->hp_cur <= 0) {
+                e->hp_cur = 0;
+                e->is_alive = 0;
+                break;
+            }
         }
 
         e->statuses[i].duration--;

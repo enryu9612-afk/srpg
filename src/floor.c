@@ -5,6 +5,62 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+typedef struct {
+    int x, y, w, h;
+} Rect;
+
+// BSP 분할을 위한 재귀 함수
+void SplitBSP(Map *map, Rect area, int depth) {
+    // 최소 크기 이하로 내려가면 방을 생성하고 종료
+    if (depth <= 0 || (area.w < 15 && area.h < 15)) {
+        // 방의 크기를 구역보다 약간 작게 무작위로 설정
+        int roomW = 3 + (rand() % (area.w - 4));
+        int roomH = 3 + (rand() % (area.h - 4));
+        int roomX = area.x + 1 + (rand() % (area.w - roomW - 2));
+        int roomY = area.y + 1 + (rand() % (area.h - roomH - 2));
+
+        for (int y = roomY; y < roomY + roomH; y++) {
+            for (int x = roomX; x < roomX + roomW; x++) {
+                map->tiles[y][x] = TILE_FLOOR;
+            }
+        }
+        return;
+    }
+
+    // 가로로 쪼갤지 세로로 쪼갤지 결정
+    bool splitH = (rand() % 2 == 0);
+    if (area.w > area.h * 1.2) splitH = false; // 너무 길면 세로로 쪼갬
+    else if (area.h > area.w * 1.2) splitH = true; // 너무 높으면 가로로 쪼갬
+
+    if (splitH) {
+        // 가로 분할 (위/아래)
+        int splitY = area.y + 5 + (rand() % (area.h - 10));
+        Rect top = {area.x, area.y, area.w, splitY - area.y};
+        Rect bottom = {area.x, splitY, area.w, area.h - (splitY - area.y)};
+        
+        SplitBSP(map, top, depth - 1);
+        SplitBSP(map, bottom, depth - 1);
+        
+        // 두 구역의 중심을 연결하는 복도 생성
+        int cx = area.x + area.w / 2;
+        map->tiles[splitY][cx] = TILE_FLOOR;
+        map->tiles[splitY - 1][cx] = TILE_FLOOR;
+    } else {
+        // 세로 분할 (왼쪽/오른쪽)
+        int splitX = area.x + 5 + (rand() % (area.w - 10));
+        Rect left = {area.x, area.y, splitX - area.x, area.h};
+        Rect right = {splitX, area.y, area.w - (splitX - area.x), area.h};
+        
+        SplitBSP(map, left, depth - 1);
+        SplitBSP(map, right, depth - 1);
+        
+        // 두 구역의 중심을 연결하는 복도 생성
+        int cy = area.y + area.h / 2;
+        map->tiles[cy][splitX] = TILE_FLOOR;
+        map->tiles[cy][splitX - 1] = TILE_FLOOR;
+    }
+}
+
 void InitFloorManager(FloorManager *fm) {
     fm->current_floor_idx = 0;
     fm->current_sector = 0;
@@ -13,103 +69,67 @@ void InitFloorManager(FloorManager *fm) {
 }
 
 void GenerateFloor(FloorManager *fm) {
-    // GDD 명세: 일반 4개 -> 보스 1개 -> 휴식 1개 반복 (총 4구역)
-    int floor_in_sector = fm->current_floor_idx % 6;
+    // 맵 초기화 (전체 벽)
+    for(int y = 0; y < MAP_HEIGHT; y++) {
+        for(int x = 0; x < MAP_WIDTH; x++) {
+            fm->current_map.tiles[y][x] = TILE_WALL;
+        }
+    }
 
+    int floor_in_sector = fm->current_floor_idx % 6;
     if (floor_in_sector < 4) {
         fm->current_type = FLOOR_REGULAR;
-        CreateRegularMap(&fm->current_map);
+        Rect root = {0, 0, MAP_WIDTH, MAP_HEIGHT};
+        SplitBSP(&fm->current_map, root, 4); // 4단계 분할
     } else if (floor_in_sector == 4) {
         fm->current_type = FLOOR_BOSS;
-        CreateBossMap(&fm->current_map);
+        // 보스방: 중앙에 큰 방 하나 생성
+        int bw = 15, bh = 15;
+        int bx = (MAP_WIDTH - bw) / 2;
+        int by = (MAP_HEIGHT - bh) / 2;
+        for(int y = by; y < by + bh; y++) {
+            for(int x = bx; x < bx + bw; x++) fm->current_map.tiles[y][x] = TILE_FLOOR;
+        }
+
+        // 시작점에서 보스 챔버까지 연결하는 복도 (너비 3타일로 확장)
+        int centerX = bx + bw / 2;
+        int centerY = by + bh / 2;
+        for(int x = 1; x <= centerX; x++) {
+            fm->current_map.tiles[1][x] = TILE_FLOOR;
+            fm->current_map.tiles[2][x] = TILE_FLOOR;
+            fm->current_map.tiles[3][x] = TILE_FLOOR;
+        }
+        for(int y = 1; y <= centerY; y++) {
+            fm->current_map.tiles[y][centerX - 1] = TILE_FLOOR;
+            fm->current_map.tiles[y][centerX]     = TILE_FLOOR;
+            fm->current_map.tiles[y][centerX + 1] = TILE_FLOOR;
+        }
+        
+        fm->current_map.tiles[1][1] = TILE_FLOOR;
+        fm->current_map.tiles[2][1] = TILE_FLOOR;
+        fm->current_map.tiles[3][1] = TILE_FLOOR;
     } else {
         fm->current_type = FLOOR_REST;
-        CreateRestMap(&fm->current_map);
+        // 휴식층: 단순한 작은 방 하나
+        for(int y = 10; y < 20; y++) {
+            for(int x = 10; x < 20; x++) fm->current_map.tiles[y][x] = TILE_FLOOR;
+        }
     }
     
     fm->current_sector = fm->current_floor_idx / 6;
 }
 
-void TransitionToNextFloor(FloorManager *fm, Party *party) {
+void TransitionToNextFloor(FloorManager *fm, PlayerUnit *player) {
     fm->current_floor_idx++;
     GenerateFloor(fm);
     
-    // 플레이어 위치를 새 층의 시작점으로 재배치 (예: 1,1)
-    for(int i = 0; i < party->count; i++) {
-        party->members[i].base.x = 1;
-        party->members[i].base.y = 1;
-    }
-    printf("Moving to Floor %d...\n", fm->current_floor_idx + 1);
-}
-
-void CreateRegularMap(Map *map) {
-    // 초기화: 전체 벽으로 채우기
-    for(int y = 0; y < MAP_HEIGHT; y++) {
-        for(int x = 0; x < MAP_WIDTH; x++) {
-            map->tiles[y][x] = TILE_WALL;
-        }
-    }
-
-    // 5명의 워커가 서로 다른 지점에서 시작하여 맵을 뚫음
-    int walkerCount = 5;
-    int tiles_per_walker = 600; 
-
-    for (int w = 0; w < walkerCount; w++) {
-        int curX = 1 + (rand() % (MAP_WIDTH - 2));
-        int curY = 1 + (rand() % (MAP_HEIGHT - 2));
-        int dug = 0;
-
-        while(dug < tiles_per_walker) {
-            map->tiles[curY][curX] = TILE_FLOOR;
-            dug++;
-
-            int dir = rand() % 4;
-            if(dir == 0 && curY > 1) curY--;
-            else if(dir == 1 && curY < MAP_HEIGHT - 2) curY++;
-            else if(dir == 2 && curX > 1) curX--;
-            else if(dir == 3 && curX < MAP_WIDTH - 2) curX++;
-        }
-    }
+    // 플레이어를 새 층의 바닥 타일 중 하나로 재배치
+    int rx, ry;
+    do {
+        rx = 1 + (rand() % (MAP_WIDTH - 2));
+        ry = 1 + (rand() % (MAP_HEIGHT - 2));
+    } while(fm->current_map.tiles[ry][rx] != TILE_FLOOR);
     
-    // 플레이어 시작점 및 주변 확보
-    for(int y = 0; y < 3; y++) {
-        for(int x = 0; x < 3; x++) {
-            map->tiles[1+y][1+x] = TILE_FLOOR;
-        }
-    }
-}
-
-void CreateBossMap(Map *map) {
-    // 보스층은 좀 더 넓은 빈 공간을 가짐 (GDD: 5*5 사이즈 빈 공간 등)
-    for(int y = 0; y < MAP_HEIGHT; y++) {
-        for(int x = 0; x < MAP_WIDTH; x++) {
-            map->tiles[y][x] = TILE_WALL;
-        }
-    }
-
-    // 중앙에 큰 보스 챔버 생성
-    int centerX = MAP_WIDTH / 2;
-    int centerY = MAP_HEIGHT / 2;
-    for(int y = centerY - 2; y <= centerY + 2; y++) {
-        for(int x = centerX - 2; x <= centerX + 2; x++) {
-            map->tiles[y][x] = TILE_FLOOR;
-        }
-    }
-    
-    // 시작점에서 보스 챔버까지 연결하는 단순한 복도
-    for(int x = 1; x <= centerX; x++) map->tiles[1][x] = TILE_FLOOR;
-    for(int y = 1; y <= centerY; y++) map->tiles[y][centerX] = TILE_FLOOR;
-    
-    map->tiles[1][1] = TILE_FLOOR;
-}
-
-void CreateRestMap(Map *map) {
-    // 휴식층은 사실상 텍스트 UI로 처리되지만, 
-    // 렌더링 오류 방지를 위해 최소한의 맵 구조를 유지
-    for(int y = 0; y < MAP_HEIGHT; y++) {
-        for(int x = 0; x < MAP_WIDTH; x++) {
-            map->tiles[y][x] = TILE_WALL;
-        }
-    }
-    map->tiles[1][1] = TILE_FLOOR;
+    player->base.x = rx;
+    player->base.y = ry;
 }

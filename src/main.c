@@ -21,6 +21,18 @@ typedef enum {
     STATE_SHOP
 } ControlState;
 
+
+void SpawnEnemies(Entity *enemies, int count, Map *map) {
+    for(int i = 0; i < count; i++) {
+        int rx, ry;
+        do {
+            rx = rand() % MAP_WIDTH;
+            ry = rand() % MAP_HEIGHT;
+        } while(map->tiles[ry][rx] != TILE_FLOOR);
+        InitEntity(&enemies[i], 100 + i, ENTITY_MONSTER, rx, ry, 'M', 1);
+    }
+}
+
 int main(void) {
     srand(time(NULL));
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Roguelike SRPG - Strategic Combat");
@@ -35,17 +47,8 @@ int main(void) {
     InitShop();
 
     Entity enemies[10]; 
-    void SpawnEnemies(Entity *enemies, int count, Map *map) {
-        for(int i = 0; i < count; i++) {
-            int rx, ry;
-            do {
-                rx = rand() % MAP_WIDTH;
-                ry = rand() % MAP_HEIGHT;
-            } while(map->tiles[ry][rx] != TILE_FLOOR);
-            InitEntity(&enemies[i], 100 + i, ENTITY_MONSTER, rx, ry, 'M', 1);
-        }
-    }
-    SpawnEnemies(enemies, 5, &fm.current_map);
+    memset(enemies, 0, sizeof(enemies));
+    SpawnEnemies(enemies, 10, &fm.current_map);
 
     GameCamera cam = {0, 0};
     ControlState current_state = STATE_MOVE;
@@ -83,7 +86,7 @@ int main(void) {
             }
             if (active->base.x >= MAP_WIDTH - 2 && active->base.y >= MAP_HEIGHT - 2) {
                 TransitionToNextFloor(&fm, &party);
-                SpawnEnemies(enemies, 5, &fm.current_map);
+                SpawnEnemies(enemies, 10, &fm.current_map);
                 AddLog("Descending to the next floor...");
             }
         } else if (current_state == STATE_TARGETING) {

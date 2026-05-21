@@ -56,9 +56,11 @@ CombatResult CalculateDamage(Entity *attacker, Entity *defender, Item *eq, Attac
         float eq_atk = (eq && eq->category == ITEM_EQUIPMENT) ? eq->equip_stats.atk_bonus : 0.0f;
         final_atk = (attacker->atk * heart_bonus) + (eq_atk * hand_bonus);
     } else {
-        float tongue_bonus = 1.0f;
-        if (op_attacker) tongue_bonus = 1.0f + GetHandBonus(op_attacker->tongue);
-        final_atk = attacker->atk * tongue_bonus;
+        // Staff(매직) 공격: Tongue 스탯 레벨에 따른 ATK 보너스 적용
+        // GDD 명세: +5% / +10% / +20% / +35% / +50% (Hand 보너스와 동일한 테이블)
+        float tongue_atk_bonus = 1.0f;
+        if (op_attacker) tongue_atk_bonus = 1.0f + GetHandBonus(op_attacker->tongue);
+        final_atk = attacker->atk * tongue_atk_bonus;
     }
     result.final_atk_used = final_atk;
 
@@ -66,7 +68,17 @@ CombatResult CalculateDamage(Entity *attacker, Entity *defender, Item *eq, Attac
     if (op_attacker) crit_chance += GetHandBonus(op_attacker->hand);
     if (((float)rand() / RAND_MAX) < crit_chance) {
         result.is_critical = 1;
-        result.damage = (int)(final_atk * 1.5f); 
+        // 크리티컬: 1.5배 데미지에도 방어력/마법저항 적용
+        if (type == ATTACK_PHYSICAL) {
+            float target_def = defender->def;
+            if (eq && eq->category == ITEM_EQUIPMENT && eq->equip_stats.w_type == WEAPON_MACE) {
+                target_def *= 0.5f;
+            }
+            result.damage = (int)(final_atk * 1.5f) - (int)target_def;
+        } else {
+            result.damage = (int)(final_atk * 1.5f * (1.0f - (defender->magic_res / 100.0f)));
+        }
+        if (result.damage < 1) result.damage = 1;
     } else {
         if (type == ATTACK_PHYSICAL) {
             float target_def = defender->def;

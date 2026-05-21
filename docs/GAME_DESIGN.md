@@ -11,7 +11,8 @@
 - **Cycle**: 4 Regular Floors $\rightarrow$ 1 Boss Floor $\rightarrow$ 1 Rest Floor. This cycle repeats 4 times.
 - **Terminology**: One cycle (4 Regular + 1 Boss) is called a "Sector".
 - **Floor Types**:
-    - **Regular/Boss Floors**: Tile-based (1 character = 1 tile).
+    - **Regular Floors**: Generated using **BSP (Binary Space Partitioning)**. Features multiple rooms connected by corridors for strategic movement.
+    - **Boss Floors**: Features a large central boss chamber.
     - **Rest Floors**: Text-based interface (Shop, etc.).
 - **NPCs**: Exactly one NPC appears per Sector (excluding Boss floors). NPCs provide quests and rewards.
 
@@ -25,7 +26,8 @@ All entities (Player/Enemy) possess:
 - `id`, `Attack`, `Evasion`, `Accuracy`, `HP`, `Defense`, `Magic Resistance`, `Level`, `Skills`.
 
 ### Operator (Player Unit) Specifics
-#### Specialized Stats (I to V)
+- **Structure**: Single-character protagonist system (Party system removed for streamlined gameplay).
+- **Specialized Stats (I to V)**:
 Represented by Roman numerals. Each level increases the effect:
 - **Eye (눈)**: Accuracy (+10% / +25% / +45% / +70% / +100%)
 - **Ear (귀)**: Evasion (+10% / +25% / +45% / +70% / +100%)
