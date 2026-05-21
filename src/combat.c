@@ -57,9 +57,8 @@ CombatResult CalculateDamage(Entity *attacker, Entity *defender, Item *eq, Attac
         final_atk = (attacker->atk * heart_bonus) + (eq_atk * hand_bonus);
     } else {
         // Staff(매직) 공격: Tongue 스탯 레벨에 따른 ATK 보너스 적용
-        // GDD 명세: +5% / +10% / +20% / +35% / +50% (Hand 보너스와 동일한 테이블)
+        // Tongue은 SP비용 감소 스탯이므로 데미지 배율엔 미적용
         float tongue_atk_bonus = 1.0f;
-        if (op_attacker) tongue_atk_bonus = 1.0f + GetHandBonus(op_attacker->tongue);
         final_atk = attacker->atk * tongue_atk_bonus;
     }
     result.final_atk_used = final_atk;

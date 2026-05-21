@@ -17,7 +17,9 @@ int UseSkill(Operator *op, Entity *target, int skill_idx) {
     if (final_sp_cost < 0) final_sp_cost = 0;
 
     if (op->base.sp_cur < final_sp_cost) {
-        AddLog("Not enough SP to use %s!", skill->name);
+        char spMsg[128];
+        sprintf(spMsg, "Not enough SP to use %s!", skill->name);
+        AddLog(spMsg);
         return 0;
     }
 
@@ -44,7 +46,9 @@ int UseSkill(Operator *op, Entity *target, int skill_idx) {
         sprintf(dmgText, "%d", skill_damage);
         AddFloatingText(target->x, target->y, dmgText, YELLOW);
     } else {
-        AddLog("Skill %s MISSED!", skill->name);
+        char missMsg[128];
+        sprintf(missMsg, "Skill %s MISSED!", skill->name);
+        AddLog(missMsg);
         AddFloatingText(target->x, target->y, "MISS", GRAY);
     }
 
