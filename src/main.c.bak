@@ -13,7 +13,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <string.h>
 
 typedef enum {
     STATE_MOVE,
@@ -48,8 +47,7 @@ int main(void) {
     InitShop();
 
     Entity enemies[10]; 
-    memset(enemies, 0, sizeof(enemies));
-    SpawnEnemies(enemies, 10, &fm.current_map);
+    SpawnEnemies(enemies, 5, &fm.current_map);
 
     GameCamera cam = {0, 0};
     ControlState current_state = STATE_MOVE;
@@ -87,7 +85,7 @@ int main(void) {
             }
             if (active->base.x >= MAP_WIDTH - 2 && active->base.y >= MAP_HEIGHT - 2) {
                 TransitionToNextFloor(&fm, &party);
-                SpawnEnemies(enemies, 10, &fm.current_map);
+                SpawnEnemies(enemies, 5, &fm.current_map);
                 AddLog("Descending to the next floor...");
             }
         } else if (current_state == STATE_TARGETING) {

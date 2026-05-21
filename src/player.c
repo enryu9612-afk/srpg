@@ -49,3 +49,24 @@ bool EquipItem(PlayerUnit *player, Item *item) {
     }
     return true;
 }
+
+void InitParty(Party *party) {
+    party->count = MAX_PARTY_SIZE;
+    party->current_unit_idx = 0;
+    party->inventory_count = 0;
+    for(int i = 0; i < MAX_PARTY_SIZE; i++) {
+        InitPlayer(&party->members[i]);
+        // 파티원별 시작 위치 차별화
+        party->members[i].base.x = 10 + i;
+        party->members[i].base.y = 10;
+    }
+}
+
+PlayerUnit* GetActiveUnit(Party *party) {
+    return &party->members[party->current_unit_idx];
+}
+
+void MoveActiveUnit(Party *party, int dx, int dy, const Map *map) {
+    PlayerUnit *active = GetActiveUnit(party);
+    MovePlayer(active, dx, dy, map);
+}

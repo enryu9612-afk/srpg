@@ -90,24 +90,6 @@ void GenerateFloor(FloorManager *fm) {
         for(int y = by; y < by + bh; y++) {
             for(int x = bx; x < bx + bw; x++) fm->current_map.tiles[y][x] = TILE_FLOOR;
         }
-
-        // 시작점에서 보스 챔버까지 연결하는 복도 (너비 3타일로 확장)
-        int centerX = bx + bw / 2;
-        int centerY = by + bh / 2;
-        for(int x = 1; x <= centerX; x++) {
-            fm->current_map.tiles[1][x] = TILE_FLOOR;
-            fm->current_map.tiles[2][x] = TILE_FLOOR;
-            fm->current_map.tiles[3][x] = TILE_FLOOR;
-        }
-        for(int y = 1; y <= centerY; y++) {
-            fm->current_map.tiles[y][centerX - 1] = TILE_FLOOR;
-            fm->current_map.tiles[y][centerX]     = TILE_FLOOR;
-            fm->current_map.tiles[y][centerX + 1] = TILE_FLOOR;
-        }
-        
-        fm->current_map.tiles[1][1] = TILE_FLOOR;
-        fm->current_map.tiles[2][1] = TILE_FLOOR;
-        fm->current_map.tiles[3][1] = TILE_FLOOR;
     } else {
         fm->current_type = FLOOR_REST;
         // 휴식층: 단순한 작은 방 하나
@@ -119,7 +101,7 @@ void GenerateFloor(FloorManager *fm) {
     fm->current_sector = fm->current_floor_idx / 6;
 }
 
-void TransitionToNextFloor(FloorManager *fm, Party *party) {
+void TransitionToNextFloor(FloorManager *fm, PlayerUnit *player) {
     fm->current_floor_idx++;
     GenerateFloor(fm);
     
@@ -130,7 +112,6 @@ void TransitionToNextFloor(FloorManager *fm, Party *party) {
         ry = 1 + (rand() % (MAP_HEIGHT - 2));
     } while(fm->current_map.tiles[ry][rx] != TILE_FLOOR);
     
-    PlayerUnit *player = GetActiveUnit(party);
     player->base.x = rx;
     player->base.y = ry;
 }
