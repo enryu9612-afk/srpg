@@ -1,0 +1,1524 @@
+
+================================================================================
+FILE: /home/seojin/srpg/entity/manual.md
+================================================================================
+# Entity Domain Manual
+
+## 1. Domain Responsibility
+The `entity` domain defines the "who" of the game. It handles the pure data structures and initialization of all living beings in the world.
+
+### Included
+- Base `Entity` structure (id, position, type).
+- `Operator` structure (player-specific stats, growth, classes).
+- `Party` structure (management of multiple operators).
+- Pure stat bonus functions (e.g., `GetEyeBonus`).
+
+### Excluded
+- Combat logic and damage calculation (handled by `battle`).
+- Status effect processing (handled by `battle`).
+- AI behavior (handled by `battle`).
+- Rendering of entities (handled by `core` and `ui`).
+
+---
+
+## 2. Coding Conventions
+
+### Naming
+- **Public Functions**: Use `Entity_` or `Operator_` prefixes.
+  - Example: `Entity_Init()`, `Operator_CalculateStat()`.
+- **Structures**: Use PascalCase for structure names.
+  - Example: `Entity`, `Operator`, `Party`.
+
+### Design Philosophy
+- **Data-Oriented**: Structures should be primarily Plain Old Data (POD). Avoid putting complex behavior/logic inside these structures.
+- **Unique Identification**: Every entity must have a unique `uint32_t` ID for tracking and targeting.
+
+---
+
+## 3. Interface Principles
+- **Stat Calculation**: This domain provides the "base" stats. Final combat values (after equipment/buffs) are calculated in the `battle` domain.
+- **Dependency Flow**: `main.c` $\rightarrow$ `entity` $\rightarrow$ `core`.
+
+
+================================================================================
+FILE: /home/seojin/srpg/entity/entity.h
+================================================================================
+#ifndef ENTITY_ENTITY_H
+#define ENTITY_ENTITY_H
+
+#include <stdint.h>
+#include <stdbool.h>
+
+typedef enum {
+    ENTITY_TYPE_PLAYER,
+    ENTITY_TYPE_ENEMY,
+    ENTITY_TYPE_NPC
+} EntityType;
+
+typedef struct {
+    uint32_t id;
+    int32_t x;
+    int32_t y;
+    EntityType type;
+} Entity;
+
+typedef struct {
+    // 5 Great Organs (Stats I to V)
+    int32_t eye;     // Accuracy
+    int32_t ear;     // Evasion
+    int32_t tongue;  // SP Cost Reduction
+    int32_t hand;    // Crit & Equip effect
+    int32_t heart;   // Attack & HP
+} OperatorStats;
+
+typedef struct {
+    Entity base;
+    
+    // Common Stats
+    int32_t level;
+    int32_t exp;
+    int32_t hp;
+    int32_t max_hp;
+    int32_t sp;
+    int32_t max_sp;
+    bool is_alive;
+    int32_t attack;
+    int32_t defense;
+    int32_t accuracy;
+    int32_t evasion;
+    int32_t magic_res;
+    
+    OperatorStats special_stats;
+} Operator;
+
+typedef struct {
+    Entity base;
+    
+    // Enemy Stats
+    int32_t level;
+    int32_t hp;
+    int32_t max_hp;
+    int32_t attack;
+    int32_t defense;
+    int32_t accuracy;
+    int32_t evasion;
+    int32_t magic_res;
+    int32_t exp_reward;
+} Enemy;
+
+// Entity API
+void Entity_Init(Entity* e, uint32_t id, int32_t x, int32_t y, EntityType type);
+
+// Operator API
+void Operator_Init(Operator* op, uint32_t id, int32_t x, int32_t y);
+void Operator_SetLevel(Operator* op, int32_t level);
+
+// Enemy API
+void Enemy_Init(Enemy* en, uint32_t id, int32_t x, int32_t y, int32_t level);
+
+#endif // ENTITY_ENTITY_H
+
+
+================================================================================
+FILE: /home/seojin/srpg/entity/entity.c
+================================================================================
+#include "entity.h"
+#include <stdio.h>
+#include <math.h>
+
+void Entity_Init(Entity* e, uint32_t id, int32_t x, int32_t y, EntityType type) {
+    if (!e) return;
+    e->id = id;
+    e->x = x;
+    e->y = y;
+    e->type = type;
+}
+
+void Operator_Init(Operator* op, uint32_t id, int32_t x, int32_t y) {
+    if (!op) return;
+
+    // Initialize base entity
+    Entity_Init(&op->base, id, x, y, ENTITY_TYPE_PLAYER);
+
+    // Initial Stats (Level 1)
+    op->level = 1;
+    op->exp = 0;
+    op->hp = 100;
+    op->max_hp = 100;
+    op->sp = 20;
+    op->max_sp = 20;
+    op->is_alive = true;
+    op->attack = 10;
+    op->defense = 5;
+    op->accuracy = 80;
+    op->evasion = 10;
+    op->magic_res = 10;
+
+    // Special Stats (Initial Level I)
+    op->special_stats.eye = 1;
+    op->special_stats.ear = 1;
+    op->special_stats.tongue = 1;
+    op->special_stats.hand = 1;
+    op->special_stats.heart = 1;
+
+    printf("[Entity] Operator initialized: ID=%u, Pos=(%d, %d)\n", id, x, y);
+}
+
+void Operator_SetLevel(Operator* op, int32_t level) {
+    if (!op) return;
+ 
+    // Base stats increase by 1.2x per level
+    // Formula: current = base * (1.2 ^ (level - 1))
+    float multiplier = powf(1.2f, (float)(level - 1));
+ 
+    op->level = level;
+    op->hp = (int32_t)(100 * multiplier);
+    op->max_hp = op->hp;
+    op->attack = (int32_t)(10 * multiplier);
+    op->defense = (int32_t)(5 * multiplier);
+    op->accuracy = (int32_t)(80 * multiplier);
+    op->evasion = (int32_t)(10 * multiplier);
+    op->magic_res = (int32_t)(10 * multiplier);
+ 
+    printf("[Entity] Operator level updated to %d. Multiplier: %.2f\n", level, multiplier);
+}
+ 
+void Enemy_Init(Enemy* en, uint32_t id, int32_t x, int32_t y, int32_t level) {
+    if (!en) return;
+    Entity_Init(&en->base, id, x, y, ENTITY_TYPE_ENEMY);
+    en->level = level;
+    en->max_hp = 50 + (level * 10);
+    en->hp = en->max_hp;
+    en->attack = 5 + (level * 2);
+    en->defense = 2 + level;
+    en->accuracy = 70 + (level * 2);
+    en->evasion = 5 + level;
+    en->magic_res = 5 + level;
+    en->exp_reward = level * 2;
+    printf("[Entity] Enemy initialized: ID=%u, Level=%d, Pos=(%d, %d)\n", id, level, x, y);
+}
+
+
+================================================================================
+FILE: /home/seojin/srpg/battle/battle.h
+================================================================================
+#ifndef BATTLE_BATTLE_H
+#define BATTLE_BATTLE_H
+
+#include "entity/entity.h"
+#include "map/map.h"
+#include <stdbool.h>
+
+typedef enum {
+    BATTLE_TURN_PLAYER,
+    BATTLE_TURN_ENEMY
+} BattleTurn;
+
+typedef struct {
+    BattleTurn current_turn;
+    bool is_combat_active;
+} BattleState;
+
+extern BattleState g_battle_state;
+
+// 전투 핵심 로직
+int32_t Battle_CalculatePhysicalDamage(Operator* attacker, Operator* defender);
+int32_t Battle_CalculateMagicDamage(Operator* attacker, Operator* defender);
+bool Battle_CheckHit(Operator* attacker, Operator* defender);
+bool Battle_CheckRange(Entity* attacker, Entity* defender, int32_t range);
+
+// 전투 실행 (결과: 0=Miss, >0=Damage)
+int32_t Battle_ExecuteAttack(Operator* attacker, Entity* target);
+
+// 턴 관리
+void Battle_NextTurn(void);
+void Battle_Init(void);
+
+#endif // BATTLE_BATTLE_H
+
+
+================================================================================
+FILE: /home/seojin/srpg/battle/battle.c
+================================================================================
+#include "battle.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+
+BattleState g_battle_state = { BATTLE_TURN_PLAYER, false };
+
+void Battle_Init(void) {
+    g_battle_state.current_turn = BATTLE_TURN_PLAYER;
+    g_battle_state.is_combat_active = false;
+}
+
+int32_t Battle_CalculatePhysicalDamage(Operator* attacker, Operator* defender) {
+    if (!attacker || !defender) return 0;
+    int32_t damage = attacker->attack - defender->defense;
+    return MAX(0, damage);
+}
+
+int32_t Battle_CalculateMagicDamage(Operator* attacker, Operator* defender) {
+    if (!attacker || !defender) return 0;
+    // Magic Damage: Attack * (1 - Magic Resistance / 100)
+    float multiplier = 1.0f - ((float)defender->magic_res / 100.0f);
+    int32_t damage = (int32_t)((float)attacker->attack * multiplier);
+    return MAX(0, damage);
+}
+
+bool Battle_CheckHit(Operator* attacker, Operator* defender) {
+    if (!attacker || !defender) return false;
+    // Final Accuracy: Attacker Accuracy - Defender Evasion
+    int32_t final_accuracy = attacker->accuracy - defender->evasion;
+    
+    // Simplification: if accuracy > 50, it hits (TBD: replace with rand() check)
+    return final_accuracy > 50;
+}
+
+bool Battle_CheckRange(Entity* attacker, Entity* defender, int32_t range) {
+    if (!attacker || !defender) return false;
+    
+    // Manhattan Distance: |x1-x2| + |y1-y2|
+    int32_t dist = abs(attacker->x - defender->x) + abs(attacker->y - defender->y);
+    return dist <= range;
+}
+
+void Battle_NextTurn(void) {
+    if (g_battle_state.current_turn == BATTLE_TURN_PLAYER) {
+        g_battle_state.current_turn = BATTLE_TURN_ENEMY;
+    } else {
+        g_battle_state.current_turn = BATTLE_TURN_PLAYER;
+    }
+    printf("[Battle] Turn changed to: %s\\n", 
+           (g_battle_state.current_turn == BATTLE_TURN_PLAYER) ? "Player" : "Enemy");
+}
+
+int32_t Battle_ExecuteAttack(Operator* attacker, Entity* target) {
+    if (!attacker || !target) return 0;
+
+    // 1. 사거리 확인 (기본 사거리 1)
+    if (!Battle_CheckRange(&attacker->base, target, 1)) {
+        return -1; // Range Error
+    }
+
+    // 2. 타겟이 Enemy인지 확인하고 캐스팅
+    if (target->type != ENTITY_TYPE_ENEMY) {
+        return -2; // Invalid Target
+    }
+    Enemy* enemy = (Enemy*)target;
+
+    // 3. 명중 판정 (현재는 단순화하여 Operator vs Operator 기준으로 구현됨. 
+    // Enemy의 Evasion을 적용하기 위해 임시로 Enemy를 Operator로 간주하거나 
+    // 별도의 Enemy_GetEvasion 함수가 필요함. 여기서는 Enemy 구조체의 evasion 필드를 직접 사용)
+    
+    // 명중률 계산을 위해 임시 Operator 구조체 생성 (타겟의 스탯을 복제)
+    Operator dummy_defender;
+    dummy_defender.evasion = enemy->evasion;
+    
+    if (!Battle_CheckHit(attacker, &dummy_defender)) {
+        return 0; // Miss
+    }
+
+    // 4. 데미지 계산 (물리 공격)
+    // Enemy의 defense 사용
+    Operator dummy_defender_stats;
+    dummy_defender_stats.defense = enemy->defense;
+    int32_t damage = Battle_CalculatePhysicalDamage(attacker, &dummy_defender_stats);
+
+    // 5. HP 적용
+    enemy->hp -= damage;
+    if (enemy->hp <= 0) {
+        enemy->hp = 0;
+        enemy->base.type = ENTITY_TYPE_NPC; // 사망 처리 (또는 별도 상태)
+    }
+
+    return damage;
+}
+
+
+================================================================================
+FILE: /home/seojin/srpg/battle/manual.md
+================================================================================
+# Battle Domain Manual
+
+## 1. Responsibility
+The `battle` domain is responsible for all combat-related logic, decoupled from the GUI and map generation.
+
+- **Damage Calculation**: Implement formulas for physical and magic damage.
+- **Hit/Evasion Check**: Calculate final accuracy based on attacker and defender stats.
+- **Range Validation**: Verify if a target is within the attack range of an attacker.
+- **Turn Management**: Manage the state transition between Player Turn and Enemy Turn.
+
+## 2. Interface Principles
+- All functions must follow the `Battle_FunctionName` convention.
+- Functions should be "pure" as much as possible; they should take the necessary entity data as input and return a result without modifying global state unless necessary (e.g., applying damage to HP).
+
+## 3. Key APIs & Formulas
+### 3.1 Damage & Accuracy (from GAME_DESIGN.md)
+- **Physical Damage**: `Attack - Defense` (implemented in `Battle_CalculatePhysicalDamage`)
+- **Magic Damage**: `Attack * (1 - Magic Resistance / 100)` (implemented in `Battle_CalculateMagicDamage`)
+- **Final Accuracy**: `Attacker Accuracy - Defender Evasion` (implemented in `Battle_CheckHit`)
+
+### 3.2 Combat Execution
+- **`Battle_ExecuteAttack(Operator* attacker, Entity* target)`**:
+    - Validates range (default: 1).
+    - Validates target type (must be `ENTITY_TYPE_ENEMY`).
+    - Performs hit check and calculates damage.
+    - Applies damage to target's HP.
+    - **Return Values**:
+        - `> 0`: Damage dealt.
+        - `0`: Attack missed.
+        - `-1`: Target out of range.
+        - `-2`: Invalid target type.
+
+### 3.3 Range & Turn
+- **`Battle_CheckRange(Entity* a, Entity* b, int range)`**: Manhattan distance check.
+- **`Battle_NextTurn()`**: Toggles between `BATTLE_TURN_PLAYER` and `BATTLE_TURN_ENEMY`.
+
+
+## 4. Integration
+- The `core` loop will call `Battle_Update()` to handle turn transitions.
+- The `ui` domain will be used to display floating damage texts and combat logs.
+
+
+================================================================================
+FILE: /home/seojin/srpg/main.c
+================================================================================
+#include "core/core.h"
+#include "ui/ui.h"
+#include "map/map.h"
+#include "entity/entity.h"
+#include "battle/battle.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void) {
+    printf("[Main] Starting Roguelike SRPG - Phase 2 Integration...\n");
+
+    // 1. Infrastructure Initialization
+    if (!Core_Init()) {
+        fprintf(stderr, "[Main Error] Core initialization failed. Exiting.\n");
+        return 1;
+    }
+    Core_InitCamera();
+    UI_Init();
+
+    // 2. World Generation
+    Map* game_map = Map_Create(60, 30);
+    if (!Map_Generate(game_map, 12345)) {
+        fprintf(stderr, "[Main Error] Map generation failed. Exiting.\n");
+        return 1;
+    }
+    UI_AddLog("World generated successfully.");
+
+    // 3. Player Initialization
+    Operator player;
+    Operator_Init(&player, 1, 0, 0);
+    
+    // 3-1. Enemy Initialization (Test)
+    Enemy enemy;
+    Enemy_Init(&enemy, 101, 0, 0, 1); // Level 1 Enemy
+
+
+    // Set player starting position to the first available floor tile
+    bool found_start = false;
+    for (int32_t y = 0; y < game_map->height && !found_start; y++) {
+        for (int32_t x = 0; x < game_map->width && !found_start; x++) {
+            if (Map_IsWalkable(game_map, x, y)) {
+                player.base.x = x;
+                player.base.y = y;
+                
+                // Safe Enemy Spawn: Use verified domain function
+                int32_t ex, ey;
+                if (Map_FindSafeSpawnPos(game_map, x, y, &ex, &ey)) {
+                    enemy.base.x = ex;
+                    enemy.base.y = ey;
+                } else {
+                    // Fallback: just place it (should rarely happen with BSP)
+                    enemy.base.x = x + 1;
+                    enemy.base.y = y;
+                }
+                
+                found_start = true;
+            }
+        }
+    }
+    UI_AddLog("Operator deployed to the sector.");
+    UI_AddLog("A hostile enemy has appeared nearby!");
+
+    // Initial camera update
+    Core_UpdateCamera(player.base.x, player.base.y);
+
+    // 4. Main Game Loop
+    while (g_game_state.is_running) {
+        // --- Update ---
+        Core_Update();
+ 
+        // Player Turn Logic
+        if (g_battle_state.current_turn == BATTLE_TURN_PLAYER) {
+            int32_t dx = 0, dy = 0;
+            if (IsKeyPressed(KEY_UP))    dy = -1;
+            else if (IsKeyPressed(KEY_DOWN))  dy = 1;
+            else if (IsKeyPressed(KEY_LEFT))  dx = -1;
+            else if (IsKeyPressed(KEY_RIGHT)) dx = 1;
+ 
+            if (dx != 0 || dy != 0) {
+                int32_t next_x = player.base.x + dx;
+                int32_t next_y = player.base.y + dy;
+ 
+                if (Map_IsWalkable(game_map, next_x, next_y)) {
+                    player.base.x = next_x;
+                    player.base.y = next_y;
+                    Core_UpdateCamera(player.base.x, player.base.y);
+                    UI_AddLog("Moving...");
+                    Battle_NextTurn(); // End turn after moving
+                } else {
+                    UI_AddLog("Blocked by a wall!");
+                }
+            }
+ 
+            // Attack Input (SPACE)
+            if (IsKeyPressed(KEY_SPACE)) {
+                int32_t result = Battle_ExecuteAttack(&player, (Entity*)&enemy);
+                if (result > 0) {
+                    char buf[64];
+                    sprintf(buf, "Attack Hit! Dealt %d damage. Enemy HP: %d", result, enemy.hp);
+                    UI_AddLog(buf);
+                    Battle_NextTurn(); // End turn after attacking
+                } else if (result == 0) {
+                    UI_AddLog("Attack Missed!");
+                    Battle_NextTurn(); // Miss still consumes a turn
+                } else if (result == -1) {
+                    UI_AddLog("Target is too far away!");
+                } else if (result == -2) {
+                    UI_AddLog("Invalid attack target!");
+                }
+            }
+        } else {
+            // Enemy Turn Logic (Simple AI Placeholder)
+            // In a real game, this would be a non-blocking timer or AI state machine
+            // For now, we'll let the enemy move once then return turn to player
+            static float enemy_timer = 0;
+            enemy_timer += GetFrameTime();
+            if (enemy_timer >= 1.0f) { // Act every 1 second
+                UI_AddLog("Enemy is thinking...");
+                // Basic AI: move towards player
+                if (enemy.base.x < player.base.x) enemy.base.x++;
+                else if (enemy.base.x > player.base.x) enemy.base.x--;
+                else if (enemy.base.y < player.base.y) enemy.base.y++;
+                else if (enemy.base.y > player.base.y) enemy.base.y--;
+                
+                UI_AddLog("Enemy moved.");
+                Battle_NextTurn();
+                enemy_timer = 0;
+            }
+        }
+ 
+        // --- Draw ---
+        Core_Draw();
+ 
+        // Render Map
+        for (int32_t y = 0; y < game_map->height; y++) {
+            for (int32_t x = 0; x < game_map->width; x++) {
+                Color tile_color = (game_map->tiles[y * game_map->width + x] == TILE_WALL) ? DARKGRAY : GRAY;
+                DrawRectangle(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE - 1, TILE_SIZE - 1, tile_color);
+            }
+        }
+ 
+        // Render Enemy
+        DrawRectangle(enemy.base.x * TILE_SIZE, enemy.base.y * TILE_SIZE, TILE_SIZE - 1, TILE_SIZE - 1, RED);
+        DrawText("E", enemy.base.x * TILE_SIZE + 8, enemy.base.y * TILE_SIZE + 4, 20, WHITE);
+ 
+        // Render Player
+        DrawRectangle(player.base.x * TILE_SIZE, player.base.y * TILE_SIZE, TILE_SIZE - 1, TILE_SIZE - 1, BLUE);
+        DrawText("@", player.base.x * TILE_SIZE + 8, player.base.y * TILE_SIZE + 4, 20, WHITE);
+ 
+        // Render UI (Screen-space) - Must be drawn last to be on top
+        UI_DrawLogPanel();
+ 
+        Core_EndDraw();
+    }
+
+    // 5. Shutdown
+    Map_Destroy(game_map);
+    Core_Shutdown();
+    printf("[Main] Game exited cleanly.\n");
+
+    return 0;
+}
+
+
+================================================================================
+FILE: /home/seojin/srpg/build.bat
+================================================================================
+@echo off
+echo [Building SRPG - Phase 2 Updated...]
+
+set CC=gcc
+set CFLAGS=-Wall -Wextra -std=c11 -I.
+set LDFLAGS=-L"C:/raylib/lib" -lraylib -lgdi32 -lwinmm
+
+echo Compiling battle...
+%CC% %CFLAGS% -c battle/battle.c -o battle/battle.o
+echo Compiling core...
+%CC% %CFLAGS% -c core/core.c -o core/core.o
+echo Compiling ui...
+%CC% %CFLAGS% -c ui/ui.c    -o ui/ui.o
+echo Compiling map...
+%CC% %CFLAGS% -c map/map.c    -o map/map.o
+echo Compiling entity...
+%CC% %CFLAGS% -c entity/entity.c -o entity/entity.o
+echo Compiling main...
+%CC% %CFLAGS% -c main.c     -o main.o
+
+echo Linking...
+%CC% battle/battle.o core/core.o ui/ui.o map/map.o entity/entity.o main.o -o srpg.exe %LDFLAGS%
+
+if %errorlevel% equ 0 (
+    echo [Build Successful!]
+    srpg.exe
+) else (
+    echo [Build Failed!]
+    pause
+)
+
+
+================================================================================
+FILE: /home/seojin/srpg/SPEC_CRASH_DIAGNOSIS.md
+================================================================================
+# SPEC_CRASH_DIAGNOSIS.md
+Goal: Identify the exact line of the crash.
+Tasks:
+- Add printf logs with fflush(stdout) to main.c and init functions.
+- Log points: InitWindow, InitFloorManager, InitParty, memset, loop entry.
+- NO code fixes allowed, only diagnostics.
+
+
+
+================================================================================
+FILE: /home/seojin/srpg/tests/test_map_gen.c
+================================================================================
+#include "map/map.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+    printf("--- BSP Map Generation Test ---\n");
+
+    int32_t width = 60;
+    int32_t height = 20;
+    
+    Map* map = Map_Create(width, height);
+    if (!map) {
+        printf("Failed to create map\n");
+        return 1;
+    }
+
+    // Use a fixed seed for reproducibility during testing
+    uint32_t seed = 12345;
+    if (Map_Generate(map, seed)) {
+        printf("Map generated successfully with seed %u:\n\n", seed);
+        Map_PrintToConsole(map);
+    } else {
+        printf("Map generation failed!\n");
+    }
+
+    Map_Destroy(map);
+    printf("\n--- Test Complete ---\n");
+    return 0;
+}
+
+
+================================================================================
+FILE: /home/seojin/srpg/tests/test_combat_integration.c
+================================================================================
+#include <stdio.h>
+#include <assert.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include "entity/entity.h"
+#include "map/map.h"
+#include "battle/battle.h"
+
+void test_battle_execute() {
+    printf("[Test] Battle_ExecuteAttack... ");
+    Operator player;
+    Operator_Init(&player, 1, 0, 0);
+    player.attack = 20;
+    player.accuracy = 100;
+    
+    Enemy enemy;
+    Enemy_Init(&enemy, 101, 1, 0, 1); // Adjacent
+    enemy.defense = 5;
+    enemy.evasion = 0;
+    enemy.hp = 50;
+
+    // Case 1: Normal Attack (Adjacent)
+    // Range check (1) -> Hit check (100-0=100 > 50) -> Damage (20-5=15)
+    int32_t result = Battle_ExecuteAttack(&player, (Entity*)&enemy);
+    assert(result == 15);
+    assert(enemy.hp == 35);
+    
+    // Case 2: Out of Range
+    enemy.base.x = 10;
+    result = Battle_ExecuteAttack(&player, (Entity*)&enemy);
+    assert(result == -1);
+    
+    // Case 3: Miss
+    enemy.base.x = 1;
+    player.accuracy = 40; // 40-0 = 40 <= 50 (Miss)
+    result = Battle_ExecuteAttack(&player, (Entity*)&enemy);
+    assert(result == 0);
+    
+    printf("PASS\n");
+}
+
+void test_spawn_logic() {
+    printf("[Test] Map_FindSafeSpawnPos... ");
+    Map* map = Map_Create(10, 10);
+    // Fill with walls except for (0,0) and (1,0)
+    for(int i=0; i<100; i++) map->tiles[i] = TILE_WALL;
+    map->tiles[0] = TILE_FLOOR; // (0,0)
+    map->tiles[1] = TILE_FLOOR; // (1,0)
+    
+    int32_t sx, sy;
+    bool found = Map_FindSafeSpawnPos(map, 0, 0, &sx, &sy);
+    assert(found == true);
+    assert(sx == 1 && sy == 0);
+    
+    // Test no walkable tiles
+    map->tiles[1] = TILE_WALL;
+    found = Map_FindSafeSpawnPos(map, 0, 0, &sx, &sy);
+    assert(found == false);
+    
+    Map_Destroy(map);
+    printf("PASS\n");
+}
+
+int main() {
+    printf("=== SRPG Integration Headless Test ===\n");
+    test_battle_execute();
+    test_spawn_logic();
+    printf("====================================\n");
+    printf("ALL INTEGRATION TESTS PASSED\n");
+    return 0;
+}
+
+
+================================================================================
+FILE: /home/seojin/srpg/tests/test_entity_init.c
+================================================================================
+#include "entity/entity.h"
+#include <stdio.h>
+#include <assert.h>
+
+int main() {
+    printf("--- Entity Initialization Test ---\n");
+
+    Operator op;
+    Operator_Init(&op, 1, 10, 10);
+
+    printf("Level 1 Stats:\n");
+    printf("HP: %d, ATK: %d, DEF: %d\n", op.hp, op.attack, op.defense);
+    
+    // Verify Level 1 defaults
+    assert(op.level == 1);
+    assert(op.hp == 100);
+    assert(op.attack == 10);
+    assert(op.special_stats.eye == 1);
+
+    printf("\nUpdating level to 5...\n");
+    Operator_SetLevel(&op, 5);
+
+    printf("Level 5 Stats:\n");
+    printf("HP: %d, ATK: %d, DEF: %d\n", op.hp, op.attack, op.defense);
+    
+    // Expected: 10 * (1.2^4) = 10 * 2.0736 = 20.736 -> 20
+    printf("Expected ATK: ~20, Actual: %d\n", op.attack);
+
+    printf("\n--- Test Complete: SUCCESS ---\n");
+    return 0;
+}
+
+
+================================================================================
+FILE: /home/seojin/srpg/tests/verify_fixes.c
+================================================================================
+#include <stdio.h>
+#include <assert.h>
+#include <stdbool.h>
+#include "entity/entity.h"
+#include "map/map.h"
+#include "battle/battle.h"
+
+void test_operator_init() {
+    printf("[Test] Verifying Operator Init... ");
+    Operator op;
+    Operator_Init(&op, 1, 0, 0);
+    
+    assert(op.sp == 20);
+    assert(op.max_sp == 20);
+    assert(op.is_alive == true);
+    assert(op.level == 1);
+    printf("PASS\n");
+}
+
+void test_map_logic() {
+    printf("[Test] Verifying Map Generation... ");
+    Map* map = Map_Create(60, 30);
+    bool success = Map_Generate(map, 12345);
+    
+    assert(success == true);
+    // Check if at least one wall and one floor exist
+    bool found_wall = false;
+    bool found_floor = false;
+    for(int i=0; i < map->width * map->height; i++) {
+        if(map->tiles[i] == TILE_WALL) found_wall = true;
+        if(map->tiles[i] == TILE_FLOOR) found_floor = true;
+    }
+    assert(found_wall && found_floor);
+    Map_Destroy(map);
+    printf("PASS\n");
+}
+
+void test_battle_formulas() {
+    printf("[Test] Verifying Battle Formulas... ");
+    Operator attacker, defender;
+    Operator_Init(&attacker, 1, 0, 0);
+    Operator_Init(&defender, 2, 1, 1);
+    
+    attacker.attack = 20;
+    defender.defense = 5;
+    assert(Battle_CalculatePhysicalDamage(&attacker, &defender) == 15);
+    
+    attacker.attack = 10;
+    defender.magic_res = 20;
+    // 10 * (1 - 0.2) = 8
+    assert(Battle_CalculateMagicDamage(&attacker, &defender) == 8);
+    
+    printf("PASS\n");
+}
+
+void test_battle_range() {
+    printf("[Test] Verifying Battle Range... ");
+    Entity e1 = { .x = 0, .y = 0 };
+    Entity e2 = { .x = 2, .y = 1 }; // Dist = 3
+    
+    assert(Battle_CheckRange(&e1, &e2, 3) == true);
+    assert(Battle_CheckRange(&e1, &e2, 2) == false);
+    printf("PASS\n");
+}
+
+int main() {
+    printf("=== SRPG Emergency Fix Verification Suite ===\n");
+    test_operator_init();
+    test_map_logic();
+    test_battle_formulas();
+    test_battle_range();
+    printf("============================================\n");
+    printf("ALL TESTS PASSED SUCCESSFULLY\n");
+    return 0;
+}
+
+
+================================================================================
+FILE: /home/seojin/srpg/tests/test_battle_logic.c
+================================================================================
+#include <stdio.h>
+#include <assert.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include "entity/entity.h"
+#include "battle/battle.h"
+
+// Helper to create a dummy operator with specific stats
+void SetupOperator(Operator* op, int32_t atk, int32_t def, int32_t acc, int32_t eva, int32_t mres) {
+    Operator_Init(op, 0, 0, 0);
+    op->attack = atk;
+    op->defense = def;
+    op->accuracy = acc;
+    op->evasion = eva;
+    op->magic_res = mres;
+}
+
+void test_physical_damage() {
+    printf("[Test] Physical Damage... ");
+    Operator atk, def;
+    
+    // Case 1: Normal damage (20 - 5 = 15)
+    SetupOperator(&atk, 20, 0, 0, 0, 0);
+    SetupOperator(&def, 0, 5, 0, 0, 0);
+    assert(Battle_CalculatePhysicalDamage(&atk, &def) == 15);
+    
+    // Case 2: Zero damage (10 - 15 = -5 -> 0)
+    SetupOperator(&atk, 10, 0, 0, 0, 0);
+    SetupOperator(&def, 0, 15, 0, 0, 0);
+    assert(Battle_CalculatePhysicalDamage(&atk, &def) == 0);
+    
+    printf("PASS\n");
+}
+
+void test_magic_damage() {
+    printf("[Test] Magic Damage... ");
+    Operator atk, def;
+    
+    // Case 1: 20% Resistance (100 * (1 - 0.2) = 80)
+    SetupOperator(&atk, 100, 0, 0, 0, 0);
+    SetupOperator(&def, 0, 0, 0, 0, 20);
+    assert(Battle_CalculateMagicDamage(&atk, &def) == 80);
+    
+    // Case 2: 100% Resistance (100 * (1 - 1.0) = 0)
+    SetupOperator(&def, 0, 0, 0, 0, 100);
+    assert(Battle_CalculateMagicDamage(&atk, &def) == 0);
+    
+    // Case 3: 0% Resistance (100 * (1 - 0) = 100)
+    SetupOperator(&def, 0, 0, 0, 0, 0);
+    assert(Battle_CalculateMagicDamage(&atk, &def) == 100);
+    
+    printf("PASS\n");
+}
+
+void test_hit_evasion() {
+    printf("[Test] Hit/Evasion... ");
+    Operator atk, def;
+    
+    // Current implementation: (Acc - Eva) > 50 hits
+    // Case 1: Hit (80 - 20 = 60 > 50)
+    SetupOperator(&atk, 0, 0, 80, 0, 0);
+    SetupOperator(&def, 0, 0, 0, 20, 0);
+    assert(Battle_CheckHit(&atk, &def) == true);
+    
+    // Case 2: Miss (70 - 30 = 40 <= 50)
+    SetupOperator(&atk, 0, 0, 70, 0, 0);
+    SetupOperator(&def, 0, 0, 0, 30, 0);
+    assert(Battle_CheckHit(&atk, &def) == false);
+    
+    // Case 3: Boundary (50 + 1 = 51 > 50)
+    SetupOperator(&atk, 0, 0, 60, 0, 0);
+    SetupOperator(&def, 0, 0, 0, 9, 0); // 60-9 = 51
+    assert(Battle_CheckHit(&atk, &def) == true);
+    
+    // Case 4: Boundary (50 = 50 <= 50)
+    SetupOperator(&def, 0, 0, 0, 10, 0); // 60-10 = 50
+    assert(Battle_CheckHit(&atk, &def) == false);
+    
+    printf("PASS\n");
+}
+
+void test_range() {
+    printf("[Test] Range... ");
+    Entity e1 = { .x = 10, .y = 10 };
+    Entity e2 = { .x = 12, .y = 11 }; // Dist = |12-10| + |11-10| = 3
+    
+    assert(Battle_CheckRange(&e1, &e2, 3) == true);
+    assert(Battle_CheckRange(&e1, &e2, 2) == false);
+    printf("PASS\n");
+}
+
+void test_turn_system() {
+    printf("[Test] Turn System... ");
+    Battle_Init();
+    assert(g_battle_state.current_turn == BATTLE_TURN_PLAYER);
+    
+    Battle_NextTurn();
+    assert(g_battle_state.current_turn == BATTLE_TURN_ENEMY);
+    
+    Battle_NextTurn();
+    assert(g_battle_state.current_turn == BATTLE_TURN_PLAYER);
+    printf("PASS\n");
+}
+
+int main() {
+    printf("=== SRPG Battle Logic Headless Test ===\n");
+    test_physical_damage();
+    test_magic_damage();
+    test_hit_evasion();
+    test_range();
+    test_turn_system();
+    printf("=======================================\n");
+    printf("ALL BATTLE LOGIC TESTS PASSED\n");
+    return 0;
+}
+
+
+================================================================================
+FILE: /home/seojin/srpg/core/manual.md
+================================================================================
+# Core Domain Manual
+ 
+## 1. Domain Responsibility
+The `core` domain is the foundation of the game engine. It handles the infrastructure required to run the game but remains agnostic of the actual game rules.
+ 
+### Included
+- Window initialization and management (raylib).
+- The main game loop (Update/Draw cycle).
+- `GameCamera` management (scaling, offsetting).
+- Basic primitive rendering (e.g., `DrawTile`).
+- Global game state management (`GameState`).
+ 
+### Excluded
+- Map generation algorithms (handled by `map`).
+- Combat calculations and AI (handled by `battle`).
+- Entity data and stats (handled by `entity`).
+- High-level UI panels (handled by `ui`).
+ 
+---
+ 
+## 2. Coding Conventions
+ 
+### Naming
+- **Public Functions**: All public API functions must start with the `Core_` prefix.
+  - Example: `Core_InitWindow()`, `Core_GetGameState()`.
+- **Structures**: Use PascalCase for structure names.
+  - Example: `GameState`, `GameCamera`.
+- **Variables/Internal Functions**: Use snake_case.
+ 
+### Types
+- Use `stdbool.h` for boolean values.
+- Use `stdint.h` (e.g., `int32_t`, `uint32_t`) for fixed-width integers to ensure cross-platform consistency.
+ 
+### Error Handling
+- Initialization and critical functions must return a `bool` (true for success, false for failure).
+- Errors should be logged via a consistent logging mechanism before returning false.
+ 
+---
+ 
+## 3. Interface Principles
+- **Dependency Flow**: `main.c` $\rightarrow$ `core` $\rightarrow$ (Other Domains).
+- `core` should not depend on the internal details of other domains. It provides the "stage" where other domains' logic is executed and rendered.
+- All resource allocation in `core` must have a corresponding deallocation function (e.g., `Core_Init` $\rightarrow$ `Core_Shutdown`).
+ 
+---
+ 
+## 4. Main Loop & Turn Structure
+- **Loop Cycle**: The main loop follows a strict `Core_Update()` $\rightarrow$ `Logic Processing` $\rightarrow$ `Core_Draw()` $\rightarrow$ `UI Rendering` $\rightarrow$ `Core_EndDraw()` sequence.
+- **Turn Management**: The game operates on a turn-based system. Input is only processed when `g_battle_state.current_turn == BATTLE_TURN_PLAYER`.
+- **Turn Transition**: A turn ends immediately after a successful action (Move, Attack, etc.), triggering `Battle_NextTurn()`.
+
+
+================================================================================
+FILE: /home/seojin/srpg/core/core.h
+================================================================================
+#ifndef CORE_CORE_H
+#define CORE_CORE_H
+
+#include <stdbool.h>
+#include <stdint.h>
+#include "raylib.h"
+
+#define TILE_SIZE 32
+
+typedef struct {
+
+    int32_t window_width;
+    int32_t window_height;
+    int32_t screen_width;
+    int32_t screen_height;
+    bool is_running;
+    int32_t current_floor;
+} GameState;
+
+typedef struct {
+    Camera2D camera;
+} GameCamera;
+
+extern GameState g_game_state;
+extern GameCamera g_game_camera;
+
+bool Core_Init(void);
+void Core_Shutdown(void);
+void Core_Update(void);
+void Core_Draw(void);
+void Core_EndDraw(void);
+
+// Camera API
+void Core_InitCamera(void);
+void Core_UpdateCamera(int32_t target_x, int32_t target_y);
+
+#endif // CORE_CORE_H
+
+
+================================================================================
+FILE: /home/seojin/srpg/core/core.c
+================================================================================
+#include "core.h"
+#include <stdio.h>
+
+GameState g_game_state = {0};
+GameCamera g_game_camera = {0};
+
+bool Core_Init(void) {
+    g_game_state.window_width = 1280;
+    g_game_state.window_height = 720;
+    g_game_state.is_running = true;
+    g_game_state.current_floor = 1;
+
+    InitWindow(g_game_state.window_width, g_game_state.window_height, "Roguelike SRPG - Foundation");
+    
+    if (!IsWindowReady()) {
+        fprintf(stderr, "[Core Error] Failed to initialize raylib window.\n");
+        return false;
+    }
+
+    SetTargetFPS(60);
+    
+    g_game_state.screen_width = GetScreenWidth();
+    g_game_state.screen_height = GetScreenHeight();
+
+    printf("[Core] Window initialized successfully: %dx%d\n", g_game_state.screen_width, g_game_state.screen_height);
+    return true;
+}
+
+void Core_Shutdown(void) {
+    printf("[Core] Shutting down...\n");
+    CloseWindow();
+}
+
+void Core_Update(void) {
+    if (WindowShouldClose()) {
+        g_game_state.is_running = false;
+    }
+}
+
+void Core_Draw(void) {
+    BeginDrawing();
+    ClearBackground(BLACK);
+    
+    // Start 2D mode for world rendering
+    BeginMode2D(g_game_camera.camera);
+}
+
+void Core_EndDraw(void) {
+    EndMode2D();
+    EndDrawing();
+}
+
+void Core_InitCamera(void) {
+    g_game_camera.camera.offset = (Vector2){ g_game_state.screen_width / 2.0f, g_game_state.screen_height / 2.0f };
+    g_game_camera.camera.target = (Vector2){ 0, 0 };
+    g_game_camera.camera.rotation = 0.0f;
+    g_game_camera.camera.zoom = 1.0f;
+}
+
+void Core_UpdateCamera(int32_t target_x, int32_t target_y) {
+    g_game_camera.camera.target = (Vector2){ 
+        target_x * TILE_SIZE + TILE_SIZE / 2.0f, 
+        target_y * TILE_SIZE + TILE_SIZE / 2.0f 
+    };
+}
+
+
+================================================================================
+FILE: /home/seojin/srpg/ui/manual.md
+================================================================================
+# UI Domain Manual
+ 
+## 1. Domain Responsibility
+The `ui` domain is responsible for the visual representation of game information. It translates game state into text-based visual elements.
+ 
+### Included
+- Text-based log panels (Combat logs, system messages).
+- Floating text (Damage numbers, status change notifications).
+- Stat panels and character information displays.
+- Font management and color palettes.
+ 
+### Excluded
+- Window and screen management (handled by `core`).
+- Game logic and state transitions (handled by `battle`, `map`, etc.).
+- World object rendering (handled by `core/DrawTile` or `map`).
+ 
+---
+ 
+## 2. Coding Conventions
+ 
+### Naming
+- **Public Functions**: All public API functions must start with the `UI_` prefix.
+  - Example: `UI_Init()`, `UI_AddLog()`, `UI_DrawLogPanel()`.
+- **Structures**: Use PascalCase for structure names.
+  - Example: `LogPanel`, `FloatingText`.
+- **Variables/Internal Functions**: Use snake_case.
+ 
+### Rendering Principles
+- **Coordinate System**: UI elements use screen-space coordinates (absolute) unless they are specifically anchored to world objects.
+- **Consistency**: All UI text should use a consistent font and color scheme defined within this domain.
+ 
+---
+ 
+## 3. Interface Principles
+- **Read-Only State**: The `ui` domain should primarily be a consumer of game state. It should not modify `GameState` or other domain data.
+- **Log Management**: The log system must implement a fixed-size buffer (circular buffer or queue) to prevent memory overflow and maintain only the most recent messages.
+- **Dependency Flow**: `main.c` $\rightarrow$ `ui` $\rightarrow$ `core`.
+ 
+---
+ 
+## 4. Rendering Order
+- **Z-Order Priority**: To ensure visual clarity, elements must be drawn in the following order:
+    1. **World Map**: Background tiles.
+    2. **Entities**: Player and Enemies.
+    3. **UI Elements**: Log panels, menus, and floating texts.
+- **Rule**: UI elements must always be drawn **after** world objects to remain on top of the screen.
+
+
+================================================================================
+FILE: /home/seojin/srpg/ui/ui.c
+================================================================================
+#include "ui.h"
+#include <string.h>
+#include <stdio.h>
+#include "raylib.h"
+
+LogPanel g_log_panel = {0};
+
+void UI_Init(void) {
+    g_log_panel.count = 0;
+    g_log_panel.head = 0;
+    printf("[UI] Log system initialized.\n");
+}
+
+void UI_AddLog(const char* text) {
+    if (text == NULL) return;
+
+    // Copy text to circular buffer
+    strncpy(g_log_panel.messages[g_log_panel.head], text, 255);
+    g_log_panel.messages[g_log_panel.head][255] = '\0'; // Ensure null termination
+
+    // Advance head and update count
+    g_log_panel.head = (g_log_panel.head + 1) % MAX_LOG_MESSAGES;
+    if (g_log_panel.count < MAX_LOG_MESSAGES) {
+        g_log_panel.count++;
+    }
+}
+
+void UI_DrawLogPanel(void) {
+    int32_t panel_y = g_game_state.screen_height - LOG_PANEL_HEIGHT;
+    
+    // Draw background
+    DrawRectangle(0, panel_y, g_game_state.screen_width, LOG_PANEL_HEIGHT, DARKGRAY);
+    DrawRectangleLines(0, panel_y, g_game_state.screen_width, LOG_PANEL_HEIGHT, WHITE);
+
+    // Draw messages
+    int32_t start_index = (g_log_panel.count < MAX_LOG_MESSAGES) ? 0 : g_log_panel.head;
+    int32_t text_y_offset = 10;
+
+    for (int32_t i = 0; i < g_log_panel.count; i++) {
+        int32_t msg_index = (start_index + i) % MAX_LOG_MESSAGES;
+        DrawText(g_log_panel.messages[msg_index], 20, panel_y + text_y_offset, 20, LIGHTGRAY);
+        text_y_offset += 25;
+    }
+}
+
+
+================================================================================
+FILE: /home/seojin/srpg/ui/ui.h
+================================================================================
+#ifndef UI_UI_H
+#define UI_UI_H
+
+#include <stdbool.h>
+#include <stdint.h>
+#include "core/core.h"
+
+#define MAX_LOG_MESSAGES 10
+#define LOG_PANEL_HEIGHT 150
+
+typedef struct {
+    char messages[MAX_LOG_MESSAGES][256];
+    int32_t count;
+    int32_t head;
+} LogPanel;
+
+extern LogPanel g_log_panel;
+
+void UI_Init(void);
+void UI_AddLog(const char* text);
+void UI_DrawLogPanel(void);
+
+#endif // UI_UI_H
+
+
+================================================================================
+FILE: /home/seojin/srpg/ROADMAP.md
+================================================================================
+
+
+================================================================================
+FILE: /home/seojin/srpg/docs/DEBUG_LOG.md
+================================================================================
+# Debug & Error Log
+
+This document records the technical challenges, bugs, and solutions encountered during the development of the Roguelike SRPG.
+
+## Log Entries
+
+### [Phase 1] Header Inclusion Path Error
+- **Date**: 2026-05-22
+- **Symptom**: `fatal error: core/core.h: No such file or directory` during `ui/ui.c` compilation.
+- **Cause**: The `build.bat` uses the `-Icore` flag, which adds the `core` directory to the include search path. Including `"core/core.h"` caused the compiler to look for `core/core/core.h`.
+- **Resolution**: Changed `#include "core/core.h"` to `#include "core.h"`.
+- **Lesson**: When using `-I<dir>` in GCC, the files inside `<dir>` should be included relative to that directory, not from the project root.
+
+---
+
+### [Phase 2] Emergency Fixes - Build/Rendering/Data Structure
+- **Date**: 2026-05-23
+- **Symptoms**:
+    1. **BUG-01**: Build error due to potential missing files or incorrect include paths.
+    2. **BUG-02**: UI rendering failure due to output order.
+    3. **BUG-03**: Operator struct missing SP and isAlive fields.
+    4. **BUG-04**: Non-standard naming conventions.
+- **Action**: Implementing systematic fixes across core/entity/ui domains.
+- **Status**: In Progress.
+
+
+---
+
+
+================================================================================
+FILE: /home/seojin/srpg/docs/GAME_DESIGN.md
+================================================================================
+
+
+================================================================================
+FILE: /home/seojin/srpg/map/map.h
+================================================================================
+#ifndef MAP_MAP_H
+#define MAP_MAP_H
+
+#include <stdint.h>
+#include <stdbool.h>
+
+typedef enum {
+    TILE_WALL = 0,
+    TILE_FLOOR,
+    TILE_DOOR
+} TileType;
+
+typedef struct {
+    int32_t width;
+    int32_t height;
+    uint8_t *tiles;
+} Map;
+
+// Core API
+Map* Map_Create(int32_t width, int32_t height);
+void Map_Destroy(Map* map);
+bool Map_Generate(Map* map, uint32_t seed);
+bool Map_IsWalkable(Map* map, int32_t x, int32_t y);
+
+// Debug/Testing API
+void Map_PrintToConsole(Map* map);
+bool Map_FindSafeSpawnPos(Map* map, int32_t px, int32_t py, int32_t* out_x, int32_t* out_y);
+
+#endif // MAP_MAP_H
+
+
+================================================================================
+FILE: /home/seojin/srpg/map/manual.md
+================================================================================
+# Map Domain Manual
+ 
+## 1. Domain Responsibility
+The `map` domain handles the structure and generation of the game world. It defines what the world is made of and how it is created.
+ 
+### Included
+- Map tile definitions (`TileType`).
+- Random map generation using the BSP (Binary Space Partitioning) algorithm.
+- Wall collision detection (`Map_IsWalkable`).
+- Floor management and transition logic.
+ 
+### Excluded
+- Entity placement and spawning (handled by `entity` or a separate spawn system).
+- Rendering of the map (handled by `core` and `ui`).
+- Combat logic within the map (handled by `battle`).
+ 
+---
+ 
+## 2. Coding Conventions
+ 
+### Naming
+- **Public Functions**: All public API functions must start with the `Map_` prefix.
+  - Example: `Map_Generate()`, `Map_IsWalkable()`.
+- **Structures**: Use PascalCase for structure names.
+  - Example: `Map`, `Rect`.
+ 
+### Data Structures
+- Use `uint8_t` for tile arrays to minimize memory footprint.
+- Map data must be decoupled from rendering logic to allow for headless console testing.
+ 
+---
+ 
+## 3. Interface Principles
+- **Pure Logic**: Map generation functions should take parameters (width, height, seed) and return a map structure without calling any GUI functions.
+- **Collision API**: Provide a simple boolean function `Map_IsWalkable(x, y)` that other domains can use for movement validation.
+- **Dependency Flow**: `main.c` $\rightarrow$ `map` $\rightarrow$ `core`.
+ 
+---
+ 
+## 4. Debug/Testing API
+- `Map_PrintToConsole(Map* map)`: Prints a text representation of the map to stdout.
+- `Map_FindSafeSpawnPos(Map* map, int32_t px, int32_t py, int32_t* out_x, int32_t* out_y)`:
+    - Searches 8 directions around (px, py).
+    - Returns `true` and sets `out_x/out_y` if a walkable tile is found.
+    - Used for spawning enemies safely without overlapping with walls or the player.
+
+
+================================================================================
+FILE: /home/seojin/srpg/map/map.c
+================================================================================
+#include "map.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+
+typedef struct {
+    int32_t x, y, w, h;
+} Rect;
+
+// Internal helper: get tile at (x, y)
+static uint8_t* get_tile(Map* map, int32_t x, int32_t y) {
+    return &map->tiles[y * map->width + x];
+}
+
+Map* Map_Create(int32_t width, int32_t height) {
+    Map* map = (Map*)malloc(sizeof(Map));
+    if (!map) return NULL;
+
+    map->width = width;
+    map->height = height;
+    map->tiles = (uint8_t*)malloc(width * height * sizeof(uint8_t));
+    if (!map->tiles) {
+        free(map);
+        return NULL;
+    }
+
+    memset(map->tiles, TILE_WALL, width * height);
+    return map;
+}
+
+void Map_Destroy(Map* map) {
+    if (map) {
+        free(map->tiles);
+        free(map);
+    }
+}
+
+static void Map_CarveRoom(Map* map, Rect rect) {
+    // Create a room slightly smaller than the partition to leave walls
+    int32_t rw = rect.w - 2;
+    int32_t rh = rect.h - 2;
+    if (rw < 3 || rh < 3) return;
+
+    int32_t rx = rect.x + 1 + (rand() % (rect.w - rw - 2 > 0 ? rect.w - rw - 2 : 1));
+    int32_t ry = rect.y + 1 + (rand() % (rect.h - rh - 2 > 0 ? rect.h - rh - 2 : 1));
+
+    // Randomize room size slightly
+    int32_t final_w = 3 + (rand() % (rw - 2));
+    int32_t final_h = 3 + (rand() % (rh - 2));
+
+    for (int32_t y = ry; y < ry + final_h && y < map->height - 1; y++) {
+        for (int32_t x = rx; x < rx + final_w && x < map->width - 1; x++) {
+            if (x > 0 && y > 0) *get_tile(map, x, y) = TILE_FLOOR;
+        }
+    }
+}
+
+static void Map_CarveCorridor(Map* map, int32_t x1, int32_t y1, int32_t x2, int32_t y2) {
+    // L-shaped corridor
+    int32_t cx = x1;
+    int32_t cy = y1;
+
+    while (cx != x2) {
+        if (cx > 0 && cx < map->width - 1 && cy > 0 && cy < map->height - 1) {
+            *get_tile(map, cx, cy) = TILE_FLOOR;
+        }
+        cx += (x2 > cx) ? 1 : -1;
+    }
+    while (cy != y2) {
+        if (cx > 0 && cx < map->width - 1 && cy > 0 && cy < map->height - 1) {
+            *get_tile(map, cx, cy) = TILE_FLOOR;
+        }
+        cy += (y2 > cy) ? 1 : -1;
+    }
+}
+
+static void Map_BspSplit(Map* map, Rect rect, int32_t depth) {
+    if (depth <= 0) {
+        Map_CarveRoom(map, rect);
+        return;
+    }
+
+    bool split_h = (rand() % 2 == 0);
+    if (rect.w > rect.h && (rand() % 10 > 3)) split_h = false;
+    if (rect.h > rect.w && (rand() % 10 > 3)) split_h = true;
+
+    if (split_h) {
+        int32_t split_y = rect.y + 3 + (rand() % (rect.h - 6));
+        Rect top = {rect.x, rect.y, rect.w, split_y - rect.y};
+        Rect bottom = {rect.x, split_y, rect.w, rect.h - (split_y - rect.y)};
+        
+        Map_BspSplit(map, top, depth - 1);
+        Map_BspSplit(map, bottom, depth - 1);
+        
+        // Connect center of top and bottom
+        Map_CarveCorridor(map, top.x + top.w/2, top.y + top.h/2, bottom.x + bottom.w/2, bottom.y + bottom.h/2);
+    } else {
+        int32_t split_x = rect.x + 3 + (rand() % (rect.w - 6));
+        Rect left = {rect.x, rect.y, split_x - rect.x, rect.h};
+        Rect right = {split_x, rect.y, rect.w - (split_x - rect.x), rect.h};
+        
+        Map_BspSplit(map, left, depth - 1);
+        Map_BspSplit(map, right, depth - 1);
+        
+        // Connect center of left and right
+        Map_CarveCorridor(map, left.x + left.w/2, left.y + left.h/2, right.x + right.w/2, right.y + right.h/2);
+    }
+}
+
+bool Map_Generate(Map* map, uint32_t seed) {
+    if (!map) return false;
+    srand(seed);
+
+    Rect root = {1, 1, map->width - 2, map->height - 2};
+    Map_BspSplit(map, root, 4); // Split 4 times (16 potential rooms)
+
+    return true;
+}
+
+bool Map_IsWalkable(Map* map, int32_t x, int32_t y) {
+    if (x < 0 || x >= map->width || y < 0 || y >= map->height) return false;
+    return *get_tile(map, x, y) != TILE_WALL;
+}
+
+void Map_PrintToConsole(Map* map) {
+    if (!map) return;
+    for (int32_t y = 0; y < map->height; y++) {
+        for (int32_t x = 0; x < map->width; x++) {
+            printf("%c", (map->tiles[y * map->width + x] == TILE_WALL) ? '#' : '.');
+        }
+        printf("\n");
+    }
+}
+
+bool Map_FindSafeSpawnPos(Map* map, int32_t px, int32_t py, int32_t* out_x, int32_t* out_y) {
+    if (!map || !out_x || !out_y) return false;
+ 
+    for (int dy = -1; dy <= 1; dy++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            if (dx == 0 && dy == 0) continue;
+            int32_t ex = px + dx;
+            int32_t ey = py + dy;
+            if (ex >= 0 && ex < map->width && ey >= 0 && ey < map->height) {
+                if (Map_IsWalkable(map, ex, ey)) {
+                    *out_x = ex;
+                    *out_y = ey;
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
