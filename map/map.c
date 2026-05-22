@@ -76,7 +76,7 @@ static void Map_CarveCorridor(Map* map, int32_t x1, int32_t y1, int32_t x2, int3
 }
 
 static void Map_BspSplit(Map* map, Rect rect, int32_t depth) {
-    if (depth <= 0) {
+    if (depth <= 0|| rect.w <= 6 || rect.h <= 6) {
         Map_CarveRoom(map, rect);
         return;
     }
