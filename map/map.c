@@ -36,7 +36,7 @@ void Map_Destroy(Map* map) {
     }
 }
 
-static void carve_room(Map* map, Rect rect) {
+static void Map_CarveRoom(Map* map, Rect rect) {
     // Create a room slightly smaller than the partition to leave walls
     int32_t rw = rect.w - 2;
     int32_t rh = rect.h - 2;
@@ -56,7 +56,7 @@ static void carve_room(Map* map, Rect rect) {
     }
 }
 
-static void carve_corridor(Map* map, int32_t x1, int32_t y1, int32_t x2, int32_t y2) {
+static void Map_CarveCorridor(Map* map, int32_t x1, int32_t y1, int32_t x2, int32_t y2) {
     // L-shaped corridor
     int32_t cx = x1;
     int32_t cy = y1;
@@ -75,9 +75,9 @@ static void carve_corridor(Map* map, int32_t x1, int32_t y1, int32_t x2, int32_t
     }
 }
 
-static void bsp_split(Map* map, Rect rect, int32_t depth) {
+static void Map_BspSplit(Map* map, Rect rect, int32_t depth) {
     if (depth <= 0) {
-        carve_room(map, rect);
+        Map_CarveRoom(map, rect);
         return;
     }
 
@@ -90,21 +90,21 @@ static void bsp_split(Map* map, Rect rect, int32_t depth) {
         Rect top = {rect.x, rect.y, rect.w, split_y - rect.y};
         Rect bottom = {rect.x, split_y, rect.w, rect.h - (split_y - rect.y)};
         
-        bsp_split(map, top, depth - 1);
-        bsp_split(map, bottom, depth - 1);
+        Map_BspSplit(map, top, depth - 1);
+        Map_BspSplit(map, bottom, depth - 1);
         
         // Connect center of top and bottom
-        carve_corridor(map, top.x + top.w/2, top.y + top.h/2, bottom.x + bottom.w/2, bottom.y + bottom.h/2);
+        Map_CarveCorridor(map, top.x + top.w/2, top.y + top.h/2, bottom.x + bottom.w/2, bottom.y + bottom.h/2);
     } else {
         int32_t split_x = rect.x + 3 + (rand() % (rect.w - 6));
         Rect left = {rect.x, rect.y, split_x - rect.x, rect.h};
         Rect right = {split_x, rect.y, rect.w - (split_x - rect.x), rect.h};
         
-        bsp_split(map, left, depth - 1);
-        bsp_split(map, right, depth - 1);
+        Map_BspSplit(map, left, depth - 1);
+        Map_BspSplit(map, right, depth - 1);
         
         // Connect center of left and right
-        carve_corridor(map, left.x + left.w/2, left.y + left.h/2, right.x + right.w/2, right.y + right.h/2);
+        Map_CarveCorridor(map, left.x + left.w/2, left.y + left.h/2, right.x + right.w/2, right.y + right.h/2);
     }
 }
 
@@ -113,7 +113,7 @@ bool Map_Generate(Map* map, uint32_t seed) {
     srand(seed);
 
     Rect root = {1, 1, map->width - 2, map->height - 2};
-    bsp_split(map, root, 4); // Split 4 times (16 potential rooms)
+    Map_BspSplit(map, root, 4); // Split 4 times (16 potential rooms)
 
     return true;
 }

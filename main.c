@@ -26,6 +26,11 @@ int main(void) {
     // 3. Player Initialization
     Operator player;
     Operator_Init(&player, 1, 0, 0);
+    
+    // 3-1. Enemy Initialization (Test)
+    Enemy enemy;
+    Enemy_Init(&enemy, 101, 0, 0, 1); // Level 1 Enemy
+
 
     // Set player starting position to the first available floor tile
     bool found_start = false;
@@ -34,11 +39,16 @@ int main(void) {
             if (Map_IsWalkable(game_map, x, y)) {
                 player.base.x = x;
                 player.base.y = y;
+                
+                // Place enemy adjacent to player
+                enemy.base.x = x + 1;
+                enemy.base.y = y;
                 found_start = true;
             }
         }
     }
     UI_AddLog("Operator deployed to the sector.");
+    UI_AddLog("A hostile enemy has appeared nearby!");
 
     // Initial camera update
     Core_UpdateCamera(player.base.x, player.base.y);
@@ -58,7 +68,7 @@ int main(void) {
         if (dx != 0 || dy != 0) {
             int32_t next_x = player.base.x + dx;
             int32_t next_y = player.base.y + dy;
-
+ 
             if (Map_IsWalkable(game_map, next_x, next_y)) {
                 player.base.x = next_x;
                 player.base.y = next_y;
@@ -66,6 +76,22 @@ int main(void) {
                 UI_AddLog("Moving...");
             } else {
                 UI_AddLog("Blocked by a wall!");
+            }
+        }
+ 
+        // Attack Input (SPACE)
+        if (IsKeyPressed(KEY_SPACE)) {
+            int32_t result = Battle_ExecuteAttack(&player, (Entity*)&enemy);
+            if (result > 0) {
+                char buf[64];
+                sprintf(buf, "Attack Hit! Dealt %d damage. Enemy HP: %d", result, enemy.hp);
+                UI_AddLog(buf);
+            } else if (result == 0) {
+                UI_AddLog("Attack Missed!");
+            } else if (result == -1) {
+                UI_AddLog("Target is too far away!");
+            } else if (result == -2) {
+                UI_AddLog("Invalid attack target!");
             }
         }
 
@@ -84,10 +110,10 @@ int main(void) {
         DrawRectangle(player.base.x * TILE_SIZE, player.base.y * TILE_SIZE, TILE_SIZE - 1, TILE_SIZE - 1, BLUE);
         DrawText("@", player.base.x * TILE_SIZE + 8, player.base.y * TILE_SIZE + 4, 20, WHITE);
 
-        Core_EndDraw();
-
-        // Render UI (Screen-space)
+        // Render UI (Screen-space) - Must be drawn last to be on top
         UI_DrawLogPanel();
+
+        Core_EndDraw();
     }
 
     // 5. Shutdown

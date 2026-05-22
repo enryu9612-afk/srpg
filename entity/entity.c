@@ -21,6 +21,9 @@ void Operator_Init(Operator* op, uint32_t id, int32_t x, int32_t y) {
     op->exp = 0;
     op->hp = 100;
     op->max_hp = 100;
+    op->sp = 20;
+    op->max_sp = 20;
+    op->is_alive = true;
     op->attack = 10;
     op->defense = 5;
     op->accuracy = 80;
@@ -39,11 +42,11 @@ void Operator_Init(Operator* op, uint32_t id, int32_t x, int32_t y) {
 
 void Operator_SetLevel(Operator* op, int32_t level) {
     if (!op) return;
-
+ 
     // Base stats increase by 1.2x per level
     // Formula: current = base * (1.2 ^ (level - 1))
     float multiplier = powf(1.2f, (float)(level - 1));
-
+ 
     op->level = level;
     op->hp = (int32_t)(100 * multiplier);
     op->max_hp = op->hp;
@@ -52,6 +55,21 @@ void Operator_SetLevel(Operator* op, int32_t level) {
     op->accuracy = (int32_t)(80 * multiplier);
     op->evasion = (int32_t)(10 * multiplier);
     op->magic_res = (int32_t)(10 * multiplier);
-
+ 
     printf("[Entity] Operator level updated to %d. Multiplier: %.2f\n", level, multiplier);
+}
+ 
+void Enemy_Init(Enemy* en, uint32_t id, int32_t x, int32_t y, int32_t level) {
+    if (!en) return;
+    Entity_Init(&en->base, id, x, y, ENTITY_TYPE_ENEMY);
+    en->level = level;
+    en->max_hp = 50 + (level * 10);
+    en->hp = en->max_hp;
+    en->attack = 5 + (level * 2);
+    en->defense = 2 + level;
+    en->accuracy = 70 + (level * 2);
+    en->evasion = 5 + level;
+    en->magic_res = 5 + level;
+    en->exp_reward = level * 2;
+    printf("[Entity] Enemy initialized: ID=%u, Level=%d, Pos=(%d, %d)\n", id, level, x, y);
 }

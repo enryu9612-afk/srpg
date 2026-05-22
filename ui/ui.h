@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "core.h"
+#include "core/core.h"
 
 #define MAX_LOG_MESSAGES 10
 #define LOG_PANEL_HEIGHT 150

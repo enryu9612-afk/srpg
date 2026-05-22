@@ -13,13 +13,15 @@ This document records the technical challenges, bugs, and solutions encountered 
 
 ---
 
-### [Phase 2] BSP Map Boundary Overflow
-- **Date**: 2026-05-22
-- **Symptom**: The outer walls of the generated map were occasionally breached, creating holes in the map boundaries.
-- **Cause**: Lack of strict boundary checks in `carve_room` and `carve_corridor` functions, allowing floor tiles to be placed on the map edges.
-- **Resolution**:
-    1. Added explicit boundary checks (`x > 0 && x < map->width - 1`) before modifying any tile.
-    2. Redefined the BSP root rectangle to start at `(1, 1)` with dimensions `(width-2, height-2)`, effectively creating a 1-tile thick "Safe Zone" of walls around the map.
-- **Lesson**: In procedural generation, always implement a "Safe Zone" or strict boundary constraints to prevent array index overflow and ensure visual integrity of map borders.
+### [Phase 2] Emergency Fixes - Build/Rendering/Data Structure
+- **Date**: 2026-05-23
+- **Symptoms**:
+    1. **BUG-01**: Build error due to potential missing files or incorrect include paths.
+    2. **BUG-02**: UI rendering failure due to output order.
+    3. **BUG-03**: Operator struct missing SP and isAlive fields.
+    4. **BUG-04**: Non-standard naming conventions.
+- **Action**: Implementing systematic fixes across core/entity/ui domains.
+- **Status**: In Progress.
+
 
 ---

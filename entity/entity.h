@@ -34,6 +34,9 @@ typedef struct {
     int32_t exp;
     int32_t hp;
     int32_t max_hp;
+    int32_t sp;
+    int32_t max_sp;
+    bool is_alive;
     int32_t attack;
     int32_t defense;
     int32_t accuracy;
@@ -43,11 +46,29 @@ typedef struct {
     OperatorStats special_stats;
 } Operator;
 
+typedef struct {
+    Entity base;
+    
+    // Enemy Stats
+    int32_t level;
+    int32_t hp;
+    int32_t max_hp;
+    int32_t attack;
+    int32_t defense;
+    int32_t accuracy;
+    int32_t evasion;
+    int32_t magic_res;
+    int32_t exp_reward;
+} Enemy;
+
 // Entity API
 void Entity_Init(Entity* e, uint32_t id, int32_t x, int32_t y, EntityType type);
 
 // Operator API
 void Operator_Init(Operator* op, uint32_t id, int32_t x, int32_t y);
 void Operator_SetLevel(Operator* op, int32_t level);
+
+// Enemy API
+void Enemy_Init(Enemy* en, uint32_t id, int32_t x, int32_t y, int32_t level);
 
 #endif // ENTITY_ENTITY_H
