@@ -127,11 +127,28 @@ void Map_PrintToConsole(Map* map) {
     if (!map) return;
     for (int32_t y = 0; y < map->height; y++) {
         for (int32_t x = 0; x < map->width; x++) {
-            uint8_t tile = *get_tile(map, x, y);
-            if (tile == TILE_WALL) printf("#");
-            else if (tile == TILE_FLOOR) printf(".");
-            else printf("D");
+            printf("%c", (map->tiles[y * map->width + x] == TILE_WALL) ? '#' : '.');
         }
         printf("\n");
     }
+}
+
+bool Map_FindSafeSpawnPos(Map* map, int32_t px, int32_t py, int32_t* out_x, int32_t* out_y) {
+    if (!map || !out_x || !out_y) return false;
+ 
+    for (int dy = -1; dy <= 1; dy++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            if (dx == 0 && dy == 0) continue;
+            int32_t ex = px + dx;
+            int32_t ey = py + dy;
+            if (ex >= 0 && ex < map->width && ey >= 0 && ey < map->height) {
+                if (Map_IsWalkable(map, ex, ey)) {
+                    *out_x = ex;
+                    *out_y = ey;
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
 }

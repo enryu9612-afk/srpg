@@ -24,5 +24,6 @@ bool Map_IsWalkable(Map* map, int32_t x, int32_t y);
 
 // Debug/Testing API
 void Map_PrintToConsole(Map* map);
+bool Map_FindSafeSpawnPos(Map* map, int32_t px, int32_t py, int32_t* out_x, int32_t* out_y);
 
 #endif // MAP_MAP_H

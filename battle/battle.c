@@ -57,7 +57,7 @@ int32_t Battle_ExecuteAttack(Operator* attacker, Entity* target) {
     if (!attacker || !target) return 0;
 
     // 1. 사거리 확인 (기본 사거리 1)
-    if (!Battle_CheckRange(attacker, target, 1)) {
+    if (!Battle_CheckRange(&attacker->base, target, 1)) {
         return -1; // Range Error
     }
 
@@ -72,7 +72,7 @@ int32_t Battle_ExecuteAttack(Operator* attacker, Entity* target) {
     // 별도의 Enemy_GetEvasion 함수가 필요함. 여기서는 Enemy 구조체의 evasion 필드를 직접 사용)
     
     // 명중률 계산을 위해 임시 Operator 구조체 생성 (타겟의 스탯을 복제)
-    Operator dummy_defender;
+    Operator dummy_defender = {0};
     dummy_defender.evasion = enemy->evasion;
     
     if (!Battle_CheckHit(attacker, &dummy_defender)) {

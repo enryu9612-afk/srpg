@@ -6,7 +6,7 @@
 #include "core/core.h"
 
 #define MAX_LOG_MESSAGES 10
-#define LOG_PANEL_HEIGHT 150
+#define LOG_PANEL_HEIGHT 250
 
 typedef struct {
     char messages[MAX_LOG_MESSAGES][256];
