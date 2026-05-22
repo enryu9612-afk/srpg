@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 GameState g_game_state = {0};
+GameCamera g_game_camera = {0};
 
 bool Core_Init(void) {
     g_game_state.window_width = 1280;
@@ -18,7 +19,6 @@ bool Core_Init(void) {
 
     SetTargetFPS(60);
     
-    // Update actual screen size after window creation
     g_game_state.screen_width = GetScreenWidth();
     g_game_state.screen_height = GetScreenHeight();
 
@@ -41,11 +41,25 @@ void Core_Draw(void) {
     BeginDrawing();
     ClearBackground(BLACK);
     
-    // The actual drawing of game objects will be called from main.c 
-    // using DrawTile or other UI/Map functions.
+    // Start 2D mode for world rendering
+    BeginMode2D(g_game_camera.camera);
 }
 
-// This function is intended to be called after main drawing logic to end the frame
 void Core_EndDraw(void) {
+    EndMode2D();
     EndDrawing();
+}
+
+void Core_InitCamera(void) {
+    g_game_camera.camera.offset = (Vector2){ g_game_state.screen_width / 2.0f, g_game_state.screen_height / 2.0f };
+    g_game_camera.camera.target = (Vector2){ 0, 0 };
+    g_game_camera.camera.rotation = 0.0f;
+    g_game_camera.camera.zoom = 1.0f;
+}
+
+void Core_UpdateCamera(int32_t target_x, int32_t target_y) {
+    g_game_camera.camera.target = (Vector2){ 
+        target_x * TILE_SIZE + TILE_SIZE / 2.0f, 
+        target_y * TILE_SIZE + TILE_SIZE / 2.0f 
+    };
 }
