@@ -7,6 +7,8 @@
 
 #define MAX_LOG_MESSAGES 10
 #define LOG_PANEL_HEIGHT 250
+#define UI_PANEL_WIDTH 300 // Fixed width for the right-side UI panel
+
 
 typedef struct {
     char messages[MAX_LOG_MESSAGES][256];

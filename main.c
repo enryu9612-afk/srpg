@@ -41,15 +41,20 @@ int main(void) {
                 player.base.x = x;
                 player.base.y = y;
                 
-                // Safe Enemy Spawn: Use verified domain function
+                // Safe Enemy Spawn: Place enemy in a different room from the player
                 int32_t ex, ey;
-                if (Map_FindSafeSpawnPos(game_map, x, y, &ex, &ey)) {
+                if (Map_FindRoomSpawnPos(game_map, x, y, &ex, &ey)) {
                     enemy.base.x = ex;
                     enemy.base.y = ey;
                 } else {
-                    // Fallback: just place it (should rarely happen with BSP)
-                    enemy.base.x = x + 1;
-                    enemy.base.y = y;
+                    // Fallback: if different room spawn fails, use the safe nearby pos
+                    if (!Map_FindSafeSpawnPos(game_map, x, y, &ex, &ey)) {
+                        enemy.base.x = x + 1;
+                        enemy.base.y = y;
+                    } else {
+                        enemy.base.x = ex;
+                        enemy.base.y = ey;
+                    }
                 }
                 
                 found_start = true;
