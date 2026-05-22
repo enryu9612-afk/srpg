@@ -174,6 +174,7 @@ int main(void) {
  
         // --- Draw ---
         Core_Draw();
+        BeginMode2D(g_game_camera.camera);
  
         // Render Map
         for (int32_t y = 0; y < game_map->height; y++) {
@@ -194,6 +195,7 @@ int main(void) {
         DrawText("@", player.base.x * TILE_SIZE + 8, player.base.y * TILE_SIZE + 4, 20, WHITE);
  
         // Render UI (Screen-space) - Must be drawn last to be on top
+        EndMode2D();
         UI_DrawLogPanel();
  
         Core_EndDraw();
