@@ -107,14 +107,19 @@ int main(void) {
                 int32_t next_y = player.base.y + dy;
  
                 if (Map_IsWalkable(game_map, next_x, next_y)) {
-                    player.base.x = next_x;
-                    player.base.y = next_y;
-                    Core_UpdateCamera(player.base.x, player.base.y);
-                    UI_AddLog("Moving...");
-                    
-                    // Only end turn if in COMBAT mode. In EXPLORATION mode, move freely.
-                    if (g_battle_state.is_combat_active) {
-                        Battle_NextTurn();
+                    // Collision check with enemy
+                    if (next_x == enemy.base.x && next_y == enemy.base.y) {
+                        UI_AddLog("Blocked by an enemy!");
+                    } else {
+                        player.base.x = next_x;
+                        player.base.y = next_y;
+                        Core_UpdateCamera(player.base.x, player.base.y);
+                        UI_AddLog("Moving...");
+                        
+                        // Only end turn if in COMBAT mode. In EXPLORATION mode, move freely.
+                        if (g_battle_state.is_combat_active) {
+                            Battle_NextTurn();
+                        }
                     }
                 } else {
                     UI_AddLog("Blocked by a wall!");
@@ -160,9 +165,14 @@ int main(void) {
                 
                 // Wall Collision Check
                 if (Map_IsWalkable(game_map, next_x, next_y)) {
-                    enemy.base.x = next_x;
-                    enemy.base.y = next_y;
-                    UI_AddLog("Enemy moved.");
+                    // Player Collision Check
+                    if (next_x == player.base.x && next_y == player.base.y) {
+                        UI_AddLog("Enemy is blocked by the player.");
+                    } else {
+                        enemy.base.x = next_x;
+                        enemy.base.y = next_y;
+                        UI_AddLog("Enemy moved.");
+                    }
                 } else {
                     UI_AddLog("Enemy is blocked by a wall.");
                 }
