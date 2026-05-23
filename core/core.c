@@ -35,6 +35,15 @@ void Core_Update(void) {
     if (WindowShouldClose()) {
         g_game_state.is_running = false;
     }
+    
+    // Toggle Fullscreen (F11)
+    if (IsKeyPressed(KEY_F11)) {
+        if (IsWindowFullscreen()) {
+            ToggleFullscreen();
+        } else {
+            ToggleFullscreen();
+        }
+    }
 }
 
 void Core_Draw(void) {
