@@ -196,9 +196,9 @@ int main(void) {
                 
                 Color color;
                 const char* symbol = " ";
-                int fontSize = TILE_SIZE - 6; // Ensure enough padding to prevent overlap
-                int offset_x = (TILE_SIZE - 8) / 2; 
-                int offset_y = (TILE_SIZE - 10) / 2;
+                int fontSize = 8; // Further reduced to prevent perceived overlap
+                int offset_x = (TILE_SIZE - 6) / 2; 
+                int offset_y = (TILE_SIZE - 8) / 2;
 
                 if (game_map->tiles[y * game_map->width + x] == TILE_WALL) {
                     bool top = (y > 0 && game_map->tiles[(y-1) * game_map->width + x] == TILE_WALL);
@@ -239,7 +239,6 @@ int main(void) {
  
         // Render Player
         DrawText("@", player.base.x * TILE_SIZE + (TILE_SIZE-10)/2, player.base.y * TILE_SIZE + (TILE_SIZE-10)/2, TILE_SIZE - 6, BLUE);
-        DrawText("[@]", player.base.x * TILE_SIZE, player.base.y * TILE_SIZE, TILE_SIZE, BLUE);
 
  
         // Render UI (Screen-space) - Must be drawn last to be on top
