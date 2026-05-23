@@ -196,9 +196,10 @@ int main(void) {
                 
                 Color color;
                 const char* symbol = " ";
-                int fontSize = 8; // Further reduced to prevent perceived overlap
-                int offset_x = (TILE_SIZE - 6) / 2; 
-                int offset_y = (TILE_SIZE - 8) / 2;
+                int wallFontSize = 12; // Bold and substantial
+                int floorFontSize = 8;    // Subtle and clean
+                int offset_x = (TILE_SIZE - 8) / 2; 
+                int offset_y = (TILE_SIZE - 12) / 2;
 
                 if (game_map->tiles[y * game_map->width + x] == TILE_WALL) {
                     bool top = (y > 0 && game_map->tiles[(y-1) * game_map->width + x] == TILE_WALL);
@@ -215,6 +216,8 @@ int main(void) {
                     if (distSq < 100) color = LIGHTGRAY;
                     else if (distSq < 400) color = DARKGRAY;
                     else color = (Color){40, 40, 40, 255};
+                    
+                    DrawText(symbol, x * TILE_SIZE + offset_x, y * TILE_SIZE + offset_y, wallFontSize, color);
                 } else {
                     color = (distSq < 100) ? GRAY : (distSq < 400) ? (Color){70, 70, 70, 255} : (Color){30, 30, 30, 255};
                     
@@ -224,11 +227,10 @@ int main(void) {
                     else if (detail_seed % 100 < 6) { symbol = "~"; color = SKYBLUE; } 
                     else { symbol = "."; }
                     
-                    offset_x = (TILE_SIZE - 6) / 2;
-                    offset_y = (TILE_SIZE - 8) / 2;
+                    int f_offset_x = (TILE_SIZE - 6) / 2;
+                    int f_offset_y = (TILE_SIZE - 8) / 2;
+                    DrawText(symbol, x * TILE_SIZE + f_offset_x, y * TILE_SIZE + f_offset_y, floorFontSize, color);
                 }
-                
-                DrawText(symbol, x * TILE_SIZE + offset_x, y * TILE_SIZE + offset_y, fontSize, color);
             }
         }
  
