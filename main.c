@@ -190,20 +190,41 @@ int main(void) {
         // Render Map
         for (int32_t y = 0; y < game_map->height; y++) {
             for (int32_t x = 0; x < game_map->width; x++) {
-                Color tile_color = (game_map->tiles[y * game_map->width + x] == TILE_WALL) ? DARKGRAY : GRAY;
-                DrawRectangle(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE - 1, TILE_SIZE - 1, tile_color);
+                // Calculate distance to player for shading
+                int32_t dx = x - player.base.x;
+                int32_t dy = y - player.base.y;
+                int32_t distSq = dx*dx + dy*dy;
+                
+                Color color;
+                const char* symbol;
+                int fontSize = TILE_SIZE;
+                int offset_x = 2, offset_y = 0;
+
+                if (game_map->tiles[y * game_map->width + x] == TILE_WALL) {
+                    // Wall shading: # -> + -> .
+                    if (distSq < 100) { symbol = "#"; color = DARKGRAY; }
+                    else if (distSq < 400) { symbol = "+"; color = (Color){60, 60, 60, 255}; }
+                    else { symbol = "."; color = (Color){30, 30, 30, 255}; }
+                } else {
+                    // Floor shading: . -> , -> ' '
+                    if (distSq < 100) { symbol = "."; color = GRAY; }
+                    else if (distSq < 400) { symbol = ","; color = (Color){100, 100, 100, 255}; }
+                    else { symbol = " "; color = (Color){50, 50, 50, 255}; }
+                    offset_x = 4; offset_y = 2; fontSize = TILE_SIZE - 4;
+                }
+                
+                DrawText(symbol, x * TILE_SIZE + offset_x, y * TILE_SIZE + offset_y, fontSize, color);
             }
         }
  
         // Render Enemy
         if (enemy.hp > 0) {
-            DrawRectangle(enemy.base.x * TILE_SIZE, enemy.base.y * TILE_SIZE, TILE_SIZE - 1, TILE_SIZE - 1, RED);
-            DrawText("E", enemy.base.x * TILE_SIZE + 8, enemy.base.y * TILE_SIZE + 4, 20, WHITE);
+            DrawText("E", enemy.base.x * TILE_SIZE + 2, enemy.base.y * TILE_SIZE, TILE_SIZE, RED);
         }
  
         // Render Player
-        DrawRectangle(player.base.x * TILE_SIZE, player.base.y * TILE_SIZE, TILE_SIZE - 1, TILE_SIZE - 1, BLUE);
-        DrawText("@", player.base.x * TILE_SIZE + 8, player.base.y * TILE_SIZE + 4, 20, WHITE);
+        DrawText("@", player.base.x * TILE_SIZE + 2, player.base.y * TILE_SIZE, TILE_SIZE, BLUE);
+
  
         // Render UI (Screen-space) - Must be drawn last to be on top
         EndMode2D();
