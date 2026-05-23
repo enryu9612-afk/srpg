@@ -18,11 +18,12 @@ typedef struct {
 extern BattleState g_battle_state;
  
 // 전투 핵심 로직
-int32_t Battle_CalculatePhysicalDamage(Operator* attacker, Operator* defender);
-int32_t Battle_CalculateMagicDamage(Operator* attacker, Operator* defender);
-bool Battle_CheckHit(Operator* attacker, Operator* defender);
+int32_t Battle_CalculatePhysicalDamage(int32_t attack, int32_t defense);
+int32_t Battle_CalculateMagicDamage(int32_t attack, int32_t magic_res);
+bool Battle_CheckHit(int32_t accuracy, int32_t evasion);
 bool Battle_CheckRange(Entity* attacker, Entity* defender, int32_t range);
 int32_t Battle_ExecuteAttack(Operator* attacker, Entity* target);
+int32_t Battle_ExecuteEnemyAttack(Enemy* attacker, Operator* target);
 void Battle_NextTurn(void);
  
 #endif // BATTLE_BATTLE_H
