@@ -6,10 +6,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
- 
+
 int main(void) {
     printf("[Main] Starting Roguelike SRPG - Phase 2 Integration...\n");
- 
+
     // 1. Infrastructure Initialization
     if (!Core_Init()) {
         fprintf(stderr, "[Main Error] Core initialization failed. Exiting.\n");
@@ -17,7 +17,7 @@ int main(void) {
     }
     Core_InitCamera();
     UI_Init();
- 
+
     // 2. World Generation
     Map* game_map = Map_Create(60, 30);
     if (!Map_Generate(game_map, (uint32_t)time(NULL))) {
@@ -25,7 +25,7 @@ int main(void) {
         return 1;
     }
     UI_AddLog("World generated successfully.");
- 
+
     // 3. Player Initialization
     Operator player;
     Operator_Init(&player, 1, 0, 0);
@@ -33,7 +33,7 @@ int main(void) {
     // 3-1. Enemy Initialization (Test)
     Enemy enemy;
     Enemy_Init(&enemy, 101, 0, 0, 1); // Level 1 Enemy
- 
+
     // Set player starting position to the first available floor tile
     bool found_start = false;
     for (int32_t y = 0; y < game_map->height && !found_start; y++) {
@@ -48,7 +48,6 @@ int main(void) {
                     enemy.base.x = ex;
                     enemy.base.y = ey;
                 } else {
-                    // Fallback: if different room spawn fails, use the safe nearby pos
                     if (!Map_FindSafeSpawnPos(game_map, x, y, &ex, &ey)) {
                         enemy.base.x = x + 1;
                         enemy.base.y = y;
@@ -57,25 +56,23 @@ int main(void) {
                         enemy.base.y = ey;
                     }
                 }
-                
                 found_start = true;
             }
         }
     }
     UI_AddLog("Operator deployed to the sector.");
     UI_AddLog("A hostile enemy has appeared nearby!");
- 
+
     // Initial camera update
     Core_UpdateCamera(player.base.x, player.base.y);
- 
+
     // 4. Main Game Loop
     while (g_game_state.is_running) {
         // --- Update ---
         Core_Update();
- 
+
         // Combat Trigger Check
         if (enemy.hp > 0) {
-            // Distance-based combat activation (Manhattan distance <= 5)
             if (Battle_CheckRange(&player.base, &enemy.base, 5)) {
                 if (!g_battle_state.is_combat_active) {
                     g_battle_state.is_combat_active = true;
@@ -88,13 +85,12 @@ int main(void) {
                 }
             }
         } else {
-            // Enemy died -> exit combat mode
             if (g_battle_state.is_combat_active) {
                 g_battle_state.is_combat_active = false;
                 UI_AddLog("Enemy defeated! Exploration mode restored.");
             }
         }
- 
+
         // Player Input & Movement
         if (g_battle_state.current_turn == BATTLE_TURN_PLAYER) {
             int32_t dx = 0, dy = 0;
@@ -102,37 +98,32 @@ int main(void) {
             else if (IsKeyPressed(KEY_DOWN))  dy = 1;
             else if (IsKeyPressed(KEY_LEFT))  dx = -1;
             else if (IsKeyPressed(KEY_RIGHT)) dx = 1;
- 
-                if (dx != 0 || dy != 0) {
-                    int32_t next_x = player.base.x + dx;
-                    int32_t next_y = player.base.y + dy;
- 
-                    if (Map_IsWalkable(game_map, next_x, next_y)) {
-                        // Collision check with enemy
-                        if (next_x == enemy.base.x && next_y == enemy.base.y) {
-                            UI_AddLog("Blocked by an enemy!");
-                        } else {
-                            player.base.x = next_x;
-                            player.base.y = next_y;
-                            Core_UpdateCamera(player.base.x, player.base.y);
-                            UI_AddLog("Moving...");
-                            
-                            // Only end turn if in COMBAT mode. In EXPLORATION mode, move freely.
-                            if (g_battle_state.is_combat_active) {
-                                Battle_NextTurn();
-                            }
-                        }
+
+            if (dx != 0 || dy != 0) {
+                int32_t next_x = player.base.x + dx;
+                int32_t next_y = player.base.y + dy;
+
+                if (Map_IsWalkable(game_map, next_x, next_y)) {
+                    if (next_x == enemy.base.x && next_y == enemy.base.y) {
+                        UI_AddLog("Blocked by an enemy!");
                     } else {
-                        UI_AddLog("Blocked by a wall!");
+                        player.base.x = next_x;
+                        player.base.y = next_y;
+                        Core_UpdateCamera(player.base.x, player.base.y);
+                        UI_AddLog("Moving...");
+                        if (g_battle_state.is_combat_active) {
+                            Battle_NextTurn();
+                        }
                     }
-                    
-                    // After player action, update status effects for the player
-                    if (g_battle_state.is_combat_active) {
-                        Battle_UpdateStatusEffects(&player.base);
-                    }
+                } else {
+                    UI_AddLog("Blocked by a wall!");
+                }
+                
+                if (g_battle_state.is_combat_active) {
+                    Battle_UpdateStatusEffects(&player.base);
                 }
             }
- 
+
             // Attack Input (SPACE)
             if (IsKeyPressed(KEY_SPACE)) {
                 int32_t result = Battle_ExecuteAttack(&player, (Entity*)&enemy);
@@ -151,7 +142,7 @@ int main(void) {
                 }
             }
         }
- 
+
         // Enemy Turn Logic
         if (g_battle_state.current_turn != BATTLE_TURN_PLAYER && enemy.hp > 0) {
             static float enemy_timer = 0;
@@ -160,24 +151,16 @@ int main(void) {
             if (enemy_timer >= 0.1f) { 
                 UI_AddLog("Enemy is thinking...");
                 Battle_UpdateEnemyAI(&enemy, &player, game_map);
-                
-                // After AI action, update status effects for the enemy
                 Battle_UpdateStatusEffects(&enemy.base);
-                
                 Battle_NextTurn();
                 enemy_timer = 0;
             }
         }
-                
-                Battle_NextTurn();
-                enemy_timer = 0;
-            }
-        }
- 
+
         // --- Draw ---
         Core_Draw();
         BeginMode2D(g_game_camera.camera);
- 
+
         // Render Map
         for (int32_t y = 0; y < game_map->height; y++) {
             for (int32_t x = 0; x < game_map->width; x++) {
@@ -187,8 +170,8 @@ int main(void) {
                 
                 Color color;
                 const char* symbol = " ";
-                int wallFontSize = 12; // Bold and substantial
-                int floorFontSize = 8;    // Subtle and clean
+                int wallFontSize = 12;
+                int floorFontSize = 8;
                 int offset_x = (TILE_SIZE - 8) / 2; 
                 int offset_y = (TILE_SIZE - 12) / 2;
 
@@ -232,19 +215,16 @@ int main(void) {
  
         // Render Player
         DrawText("@", player.base.x * TILE_SIZE + (TILE_SIZE-10)/2, player.base.y * TILE_SIZE + (TILE_SIZE-10)/2, TILE_SIZE - 6, BLUE);
-
  
-        // Render UI (Screen-space) - Must be drawn last to be on top
         EndMode2D();
         UI_DrawLogPanel();
- 
         Core_EndDraw();
     }
- 
+
     // 5. Shutdown
     Map_Destroy(game_map);
     Core_Shutdown();
     printf("[Main] Game exited cleanly.\n");
- 
+
     return 0;
 }
