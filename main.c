@@ -190,51 +190,42 @@ int main(void) {
         // Render Map
         for (int32_t y = 0; y < game_map->height; y++) {
             for (int32_t x = 0; x < game_map->width; x++) {
-                // Calculate distance for shading
                 int32_t dx = x - player.base.x;
                 int32_t dy = y - player.base.y;
                 int32_t distSq = dx*dx + dy*dy;
                 
                 Color color;
                 const char* symbol = " ";
-                int fontSize = TILE_SIZE;
-                int offset_x = 2, offset_y = 0;
+                int fontSize = TILE_SIZE - 6; // Ensure enough padding to prevent overlap
+                int offset_x = (TILE_SIZE - 8) / 2; 
+                int offset_y = (TILE_SIZE - 10) / 2;
 
                 if (game_map->tiles[y * game_map->width + x] == TILE_WALL) {
-                    // Structural Wall Logic
                     bool top = (y > 0 && game_map->tiles[(y-1) * game_map->width + x] == TILE_WALL);
                     bool bot = (y < game_map->height-1 && game_map->tiles[(y+1) * game_map->width + x] == TILE_WALL);
                     bool lft = (x > 0 && game_map->tiles[y * game_map->width + (x-1)] == TILE_WALL);
                     bool rgt = (x < game_map->width-1 && game_map->tiles[y * game_map->width + (x+1)] == TILE_WALL);
 
-                    if (top && bot && lft && rgt) symbol = "##";
-                    else if (top && bot) symbol = "||";
-                    else if (lft && rgt) symbol = "--";
-                    else if (top && lft) symbol = "++";
-                    else if (top && rgt) symbol = "++";
-                    else if (bot && lft) symbol = "++";
-                    else if (bot && rgt) symbol = "++";
+                    if (top && bot && lft && rgt) symbol = "#";
+                    else if (top && bot) symbol = "|";
+                    else if (lft && rgt) symbol = "-";
+                    else if (top || bot || lft || rgt) symbol = "+";
                     else symbol = "#";
 
                     if (distSq < 100) color = LIGHTGRAY;
                     else if (distSq < 400) color = DARKGRAY;
                     else color = (Color){40, 40, 40, 255};
                 } else {
-                    // Floor with Detail Logic
                     color = (distSq < 100) ? GRAY : (distSq < 400) ? (Color){70, 70, 70, 255} : (Color){30, 30, 30, 255};
                     
-                    // Random decorative debris (based on coordinate seed for stability)
                     uint32_t detail_seed = (x * 12345) ^ (y * 67890);
-                    if (detail_seed % 100 < 2) {
-                        symbol = "*"; color = GOLD; 
-                    } else if (detail_seed % 100 < 4) {
-                        symbol = "o"; color = LIME;
-                    } else if (detail_seed % 100 < 6) {
-                        symbol = "~"; color = SKYBLUE;
-                    } else {
-                        symbol = ".";
-                    }
-                    offset_x = 4; offset_y = 2; fontSize = TILE_SIZE - 4;
+                    if (detail_seed % 100 < 2) { symbol = "*"; color = GOLD; } 
+                    else if (detail_seed % 100 < 4) { symbol = "o"; color = LIME; } 
+                    else if (detail_seed % 100 < 6) { symbol = "~"; color = SKYBLUE; } 
+                    else { symbol = "."; }
+                    
+                    offset_x = (TILE_SIZE - 6) / 2;
+                    offset_y = (TILE_SIZE - 8) / 2;
                 }
                 
                 DrawText(symbol, x * TILE_SIZE + offset_x, y * TILE_SIZE + offset_y, fontSize, color);
@@ -243,10 +234,11 @@ int main(void) {
  
         // Render Enemy
         if (enemy.hp > 0) {
-            DrawText("<E>", enemy.base.x * TILE_SIZE, enemy.base.y * TILE_SIZE, TILE_SIZE, RED);
+            DrawText("E", enemy.base.x * TILE_SIZE + (TILE_SIZE-10)/2, enemy.base.y * TILE_SIZE + (TILE_SIZE-10)/2, TILE_SIZE - 6, RED);
         }
  
         // Render Player
+        DrawText("@", player.base.x * TILE_SIZE + (TILE_SIZE-10)/2, player.base.y * TILE_SIZE + (TILE_SIZE-10)/2, TILE_SIZE - 6, BLUE);
         DrawText("[@]", player.base.x * TILE_SIZE, player.base.y * TILE_SIZE, TILE_SIZE, BLUE);
 
  
