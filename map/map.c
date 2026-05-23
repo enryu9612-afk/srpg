@@ -127,7 +127,7 @@ bool Map_Generate(Map* map, uint32_t seed) {
     srand(seed);
  
     Rect root = {1, 1, map->width - 2, map->height - 2};
-    Map_BspSplit(map, root, 4); // Split 4 times (16 potential rooms)
+    Map_BspSplit(map, root, 5); // Split 4 times (16 potential rooms)
  
     return true;
 }
