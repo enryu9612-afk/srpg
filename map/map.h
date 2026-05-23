@@ -13,7 +13,11 @@ typedef enum {
 typedef struct {
     int32_t x, y, w, h;
 } Rect;
- 
+
+typedef struct {
+    int32_t x, y;
+} Point;
+
 typedef struct {
     Rect bounds;
     int32_t id;

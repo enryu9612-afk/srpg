@@ -19,7 +19,7 @@ int main(void) {
  
     // 2. World Generation
     Map* game_map = Map_Create(60, 30);
-    if (!Map_Generate(game_map, 12345)) {
+    if (!Map_Generate(game_map, (uint32_t)time(NULL))) {
         fprintf(stderr, "[Main Error] Map generation failed. Exiting.\n");
         return 1;
     }

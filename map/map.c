@@ -36,19 +36,19 @@ void Map_Destroy(Map* map) {
     }
 }
  
-static void Map_CarveRoom(Map* map, Rect rect) {
+static Point Map_CarveRoom(Map* map, Rect rect) {
     // Create a room slightly smaller than the partition to leave walls
     int32_t rw = rect.w - 2;
     int32_t rh = rect.h - 2;
-    if (rw < 3 || rh < 3) return;
- 
+    if (rw < 3 || rh < 3) return (Point){rect.x + rect.w/2, rect.y + rect.h/2};
+
     int32_t rx = rect.x + 1 + (rand() % (rect.w - rw - 2 > 0 ? rect.w - rw - 2 : 1));
     int32_t ry = rect.y + 1 + (rand() % (rect.h - rh - 2 > 0 ? rect.h - rh - 2 : 1));
- 
+
     // Randomize room size slightly
     int32_t final_w = 3 + (rand() % (rw - 2));
     int32_t final_h = 3 + (rand() % (rh - 2));
- 
+
     for (int32_t y = ry; y < ry + final_h && y < map->height - 1; y++) {
         for (int32_t x = rx; x < rx + final_w && x < map->width - 1; x++) {
             if (x > 0 && y > 0) *get_tile(map, x, y) = TILE_FLOOR;
@@ -61,6 +61,8 @@ static void Map_CarveRoom(Map* map, Rect rect) {
         map->rooms[map->room_count].id = map->room_count;
         map->room_count++;
     }
+
+    return (Point){rx + final_w / 2, ry + final_h / 2};
 }
  
 static void Map_CarveCorridor(Map* map, int32_t x1, int32_t y1, int32_t x2, int32_t y2) {
@@ -82,10 +84,9 @@ static void Map_CarveCorridor(Map* map, int32_t x1, int32_t y1, int32_t x2, int3
     }
 }
  
-static void Map_BspSplit(Map* map, Rect rect, int32_t depth) {
+static Point Map_BspSplit(Map* map, Rect rect, int32_t depth) {
     if (depth <= 0|| rect.w <= 6 || rect.h <= 6) {
-        Map_CarveRoom(map, rect);
-        return;
+        return Map_CarveRoom(map, rect);
     }
  
     bool split_h = (rand() % 2 == 0);
@@ -97,21 +98,27 @@ static void Map_BspSplit(Map* map, Rect rect, int32_t depth) {
         Rect top = {rect.x, rect.y, rect.w, split_y - rect.y};
         Rect bottom = {rect.x, split_y, rect.w, rect.h - (split_y - rect.y)};
         
-        Map_BspSplit(map, top, depth - 1);
-        Map_BspSplit(map, bottom, depth - 1);
+        Point p1 = Map_BspSplit(map, top, depth - 1);
+        Point p2 = Map_BspSplit(map, bottom, depth - 1);
         
         // Connect center of top and bottom
-        Map_CarveCorridor(map, top.x + top.w/2, top.y + top.h/2, bottom.x + bottom.w/2, bottom.y + bottom.h/2);
+        Map_CarveCorridor(map, p1.x, p1.y, p2.x, p2.y);
+        
+        // Return a point inside one of the sub-regions to connect to the parent
+        return (p1.x != 0 || p1.y != 0) ? p1 : p2;
     } else {
         int32_t split_x = rect.x + 3 + (rand() % (rect.w - 6));
         Rect left = {rect.x, rect.y, split_x - rect.x, rect.h};
         Rect right = {split_x, rect.y, rect.w - (split_x - rect.x), rect.h};
         
-        Map_BspSplit(map, left, depth - 1);
-        Map_BspSplit(map, right, depth - 1);
+        Point p1 = Map_BspSplit(map, left, depth - 1);
+        Point p2 = Map_BspSplit(map, right, depth - 1);
         
         // Connect center of left and right
-        Map_CarveCorridor(map, left.x + left.w/2, left.y + left.h/2, right.x + right.w/2, right.y + right.h/2);
+        Map_CarveCorridor(map, p1.x, p1.y, p2.x, p2.y);
+        
+        // Return a point inside one of the sub-regions to connect to the parent
+        return (p1.x != 0 || p1.y != 0) ? p1 : p2;
     }
 }
  
