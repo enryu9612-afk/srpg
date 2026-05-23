@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -13,7 +14,7 @@ void Battle_Init(void) {
     g_battle_state.is_combat_active = false;
 }
 
-// --- Pure Calculation Logic (S-Design Standard) ---
+// --- Pure Calculation Logic ---
 
 int32_t Battle_CalculatePhysicalDamage(int32_t attack, int32_t defense) {
     return MAX(0, attack - defense);
@@ -41,54 +42,116 @@ bool Battle_CheckRange(Entity* attacker, Entity* defender, int32_t range) {
 
 int32_t Battle_ExecuteAttack(Operator* attacker, Entity* target) {
     if (!attacker || !target) return 0;
-
-    // 1. Range check (Default range 1)
-    if (!Battle_CheckRange(&attacker->base, target, 1)) {
-        return -1; // Range Error
-    }
-
-    // 2. Target validation
-    if (target->type != ENTITY_TYPE_ENEMY) {
-        return -2; // Invalid Target
-    }
+    if (!Battle_CheckRange(&attacker->base, target, 1)) return -1;
+    if (target->type != ENTITY_TYPE_ENEMY) return -2;
+    
     Enemy* enemy = (Enemy*)target;
-
-    // 3. Hit determination
-    if (!Battle_CheckHit(attacker->accuracy, enemy->evasion)) {
-        return 0; // Miss
-    }
-
-    // 4. Damage calculation (Physical)
+    if (!Battle_CheckHit(attacker->accuracy, enemy->evasion)) return 0;
+    
     int32_t damage = Battle_CalculatePhysicalDamage(attacker->attack, enemy->defense);
-
-    // 5. Apply damage
     enemy->hp -= damage;
     if (enemy->hp < 0) enemy->hp = 0;
-    
     return damage;
 }
 
 int32_t Battle_ExecuteEnemyAttack(Enemy* attacker, Operator* target) {
     if (!attacker || !target) return 0;
-
-    // 1. Range check (Default range 1)
-    if (!Battle_CheckRange(&attacker->base, &target->base, 1)) {
-        return -1; // Range Error
-    }
-
-    // 2. Hit determination
-    if (!Battle_CheckHit(attacker->accuracy, target->evasion)) {
-        return 0; // Miss
-    }
-
-    // 3. Damage calculation (Physical)
+    if (!Battle_CheckRange(&attacker->base, &target->base, 1)) return -1;
+    if (!Battle_CheckHit(attacker->accuracy, target->evasion)) return 0;
+    
     int32_t damage = Battle_CalculatePhysicalDamage(attacker->attack, target->defense);
-
-    // 4. Apply damage
     target->hp -= damage;
     if (target->hp < 0) target->hp = 0;
-
     return damage;
+}
+
+// --- AI Behavioral Logic ---
+
+void Battle_UpdateEnemyAI(Enemy* enemy, Operator* player, Map* map) {
+    if (!enemy || !player || !map) return;
+
+    // 1. Attack if in range
+    if (Battle_CheckRange(&enemy->base, &player->base, 1)) {
+        Battle_ExecuteEnemyAttack(enemy, player);
+        return;
+    }
+
+    // 2. Move toward player with basic obstacle avoidance
+    int32_t dx = player->base.x - enemy->base.x;
+    int32_t dy = player->base.y - enemy->base.y;
+
+    int32_t move_x = 0, move_y = 0;
+    if (abs(dx) > abs(dy)) {
+        move_x = (dx > 0) ? 1 : -1;
+        move_y = 0;
+    } else {
+        move_x = 0;
+        move_y = (dy > 0) ? 1 : -1;
+    }
+
+    int32_t next_x = enemy->base.x + move_x;
+    int32_t next_y = enemy->base.y + move_y;
+
+    // Collision Check (Wall + Player)
+    bool blocked = false;
+    if (next_x < 0 || next_x >= map->width || next_y < 0 || next_y >= map->height) blocked = true;
+    else if (map->tiles[next_y * map->width + next_x] == 0) blocked = true; // TILE_WALL = 0
+    else if (next_x == player->base.x && next_y == player->base.y) blocked = true;
+
+    if (blocked) {
+        // Try orthogonal move for avoidance
+        if (move_x != 0) {
+            // Try moving Y instead
+            int32_t try_y = (dy > 0) ? 1 : -1;
+            int32_t try_next_y = enemy->base.y + try_y;
+            if (try_next_y >= 0 && try_next_y < map->height && 
+                map->tiles[try_next_y * map->width + enemy->base.x] != 0 &&
+                !(enemy->base.x == player->base.x && try_next_y == player->base.y)) {
+                enemy->base.y = try_next_y;
+            }
+        } else {
+            // Try moving X instead
+            int32_t try_x = (dx > 0) ? 1 : -1;
+            int32_t try_next_x = enemy->base.x + try_x;
+            if (try_next_x >= 0 && try_next_x < map->width && 
+                map->tiles[enemy->base.y * map->width + try_next_x] != 0 &&
+                !(try_next_x == player->base.x && enemy->base.y == player->base.y)) {
+                enemy->base.x = try_next_x;
+            }
+        }
+    } else {
+        enemy->base.x = next_x;
+        enemy->base.y = next_y;
+    }
+}
+
+// --- Status Effect Logic ---
+
+void Battle_UpdateStatusEffects(Entity* entity) {
+    if (!entity) return;
+
+    Operator* op = (entity->type == ENTITY_TYPE_PLAYER) ? (Operator*)entity : NULL;
+    Enemy* en = (entity->type == ENTITY_TYPE_ENEMY) ? (Enemy*)entity : NULL;
+    
+    StatusEffect* effects = (op) ? op->statuses : en->statuses;
+    int32_t max_hp = (op) ? op->max_hp : en->max_hp;
+    int32_t* hp = (op) ? &op->hp : &en->hp;
+
+    for (int i = 0; i < 5; i++) {
+        if (effects[i].type == STATUS_NONE) continue;
+
+        if (effects[i].type == STATUS_BURN) {
+            int32_t damage = (int32_t)(max_hp * 0.05f);
+            *hp -= damage;
+            if (*hp < 0) *hp = 0;
+            printf("[Status] Burn! Lost %d HP\n", damage);
+        }
+
+        effects[i].duration--;
+        if (effects[i].duration <= 0) {
+            effects[i].type = STATUS_NONE;
+        }
+    }
 }
 
 void Battle_NextTurn(void) {

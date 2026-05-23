@@ -24,6 +24,11 @@ bool Battle_CheckHit(int32_t accuracy, int32_t evasion);
 bool Battle_CheckRange(Entity* attacker, Entity* defender, int32_t range);
 int32_t Battle_ExecuteAttack(Operator* attacker, Entity* target);
 int32_t Battle_ExecuteEnemyAttack(Enemy* attacker, Operator* target);
+
+// AI 및 상태이상
+void Battle_UpdateEnemyAI(Enemy* enemy, Operator* player, Map* map);
+void Battle_UpdateStatusEffects(Entity* entity);
+
 void Battle_NextTurn(void);
  
 #endif // BATTLE_BATTLE_H

@@ -10,6 +10,19 @@ typedef enum {
     ENTITY_TYPE_NPC
 } EntityType;
 
+typedef enum {
+    STATUS_NONE = 0,
+    STATUS_BURN,
+    STATUS_RAGE,
+    STATUS_SICKLY,
+    STATUS_HUNGER
+} StatusType;
+
+typedef struct {
+    StatusType type;
+    int32_t duration; // Turns remaining
+} StatusEffect;
+
 typedef struct {
     uint32_t id;
     int32_t x;
@@ -44,6 +57,7 @@ typedef struct {
     int32_t magic_res;
     
     OperatorStats special_stats;
+    StatusEffect statuses[5]; // Max 5 active effects
 } Operator;
 
 typedef struct {
@@ -59,6 +73,7 @@ typedef struct {
     int32_t evasion;
     int32_t magic_res;
     int32_t exp_reward;
+    StatusEffect statuses[5]; // Max 5 active effects
 } Enemy;
 
 // Entity API

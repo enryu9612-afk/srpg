@@ -103,27 +103,33 @@ int main(void) {
             else if (IsKeyPressed(KEY_LEFT))  dx = -1;
             else if (IsKeyPressed(KEY_RIGHT)) dx = 1;
  
-            if (dx != 0 || dy != 0) {
-                int32_t next_x = player.base.x + dx;
-                int32_t next_y = player.base.y + dy;
+                if (dx != 0 || dy != 0) {
+                    int32_t next_x = player.base.x + dx;
+                    int32_t next_y = player.base.y + dy;
  
-                if (Map_IsWalkable(game_map, next_x, next_y)) {
-                    // Collision check with enemy
-                    if (next_x == enemy.base.x && next_y == enemy.base.y) {
-                        UI_AddLog("Blocked by an enemy!");
-                    } else {
-                        player.base.x = next_x;
-                        player.base.y = next_y;
-                        Core_UpdateCamera(player.base.x, player.base.y);
-                        UI_AddLog("Moving...");
-                        
-                        // Only end turn if in COMBAT mode. In EXPLORATION mode, move freely.
-                        if (g_battle_state.is_combat_active) {
-                            Battle_NextTurn();
+                    if (Map_IsWalkable(game_map, next_x, next_y)) {
+                        // Collision check with enemy
+                        if (next_x == enemy.base.x && next_y == enemy.base.y) {
+                            UI_AddLog("Blocked by an enemy!");
+                        } else {
+                            player.base.x = next_x;
+                            player.base.y = next_y;
+                            Core_UpdateCamera(player.base.x, player.base.y);
+                            UI_AddLog("Moving...");
+                            
+                            // Only end turn if in COMBAT mode. In EXPLORATION mode, move freely.
+                            if (g_battle_state.is_combat_active) {
+                                Battle_NextTurn();
+                            }
                         }
+                    } else {
+                        UI_AddLog("Blocked by a wall!");
                     }
-                } else {
-                    UI_AddLog("Blocked by a wall!");
+                    
+                    // After player action, update status effects for the player
+                    if (g_battle_state.is_combat_active) {
+                        Battle_UpdateStatusEffects(&player.base);
+                    }
                 }
             }
  
@@ -146,37 +152,22 @@ int main(void) {
             }
         }
  
-        // Enemy Turn Logic (Simple AI Placeholder)
+        // Enemy Turn Logic
         if (g_battle_state.current_turn != BATTLE_TURN_PLAYER && enemy.hp > 0) {
             static float enemy_timer = 0;
             enemy_timer += GetFrameTime();
             
-            // Reduced delay for faster combat tempo (0.1s instead of 1.0s)
             if (enemy_timer >= 0.1f) { 
                 UI_AddLog("Enemy is thinking...");
+                Battle_UpdateEnemyAI(&enemy, &player, game_map);
                 
-                int32_t next_x = enemy.base.x;
-                int32_t next_y = enemy.base.y;
+                // After AI action, update status effects for the enemy
+                Battle_UpdateStatusEffects(&enemy.base);
                 
-                // Basic AI: move towards player
-                if (enemy.base.x < player.base.x) next_x++;
-                else if (enemy.base.x > player.base.x) next_x--;
-                else if (enemy.base.y < player.base.y) next_y++;
-                else if (enemy.base.y > player.base.y) next_y--;
-                
-                // Wall Collision Check
-                if (Map_IsWalkable(game_map, next_x, next_y)) {
-                    // Player Collision Check
-                    if (next_x == player.base.x && next_y == player.base.y) {
-                        UI_AddLog("Enemy is blocked by the player.");
-                    } else {
-                        enemy.base.x = next_x;
-                        enemy.base.y = next_y;
-                        UI_AddLog("Enemy moved.");
-                    }
-                } else {
-                    UI_AddLog("Enemy is blocked by a wall.");
-                }
+                Battle_NextTurn();
+                enemy_timer = 0;
+            }
+        }
                 
                 Battle_NextTurn();
                 enemy_timer = 0;
