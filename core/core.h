@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "raylib.h"
 
-#define TILE_SIZE 16
+#define TILE_SIZE 32
 
 typedef struct {
 
