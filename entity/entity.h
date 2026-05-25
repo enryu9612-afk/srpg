@@ -45,6 +45,7 @@ typedef struct {
     // Common Stats
     int32_t level;
     int32_t exp;
+    int32_t stat_points; // Points available for spending on organs
     int32_t hp;
     int32_t max_hp;
     int32_t sp;
