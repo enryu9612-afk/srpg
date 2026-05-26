@@ -23,11 +23,13 @@ echo Compiling equipment...
 %CC% %CFLAGS% -c entity/equipment_system.c -o entity/equipment_system.o
 echo Compiling ui...
 %CC% %CFLAGS% -c ui/ui.c -o ui/ui.o
+%CC% %CFLAGS% -c ui/ui_logic.c -o ui/ui_logic.o
+%CC% %CFLAGS% -c ui/inventory_draw.c -o ui/inventory_draw.o
 echo Compiling main...
 %CC% %CFLAGS% -c main.c -o main.o
 
 echo Linking...
-%CC% core/core.o map/map.o entity/entity.o growth/growth.o battle/battle.o item/item.o item/db/item_database.o entity/equipment_system.o ui/ui.o main.o -o srpg.exe %LDFLAGS%
+%CC% core/core.o map/map.o entity/entity.o growth/growth.o battle/battle.o item/item.o item/db/item_database.o entity/equipment_system.o ui/ui.o ui/ui_logic.o ui/inventory_draw.o main.o -o srpg.exe %LDFLAGS%
 
 if %errorlevel% equ 0 (
     echo [Build Successful!]
