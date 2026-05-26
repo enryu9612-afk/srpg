@@ -161,31 +161,17 @@ int main(void) {
                 }
             } else if (g_ui_context.state == UI_STATE_INVENTORY) {
                 static int32_t selected_slot = 0;
-                if (IsKeyPressed(KEY_UP)) selected_slot = (selected_slot - 1 >= 0) ? selected_slot - 1 : MAX_INVENTORY_SLOTS - 1;
-                if (IsKeyPressed(KEY_DOWN)) selected_slot = (selected_slot + 1 < MAX_INVENTORY_SLOTS) ? selected_slot + 1 : 0;
-                if (IsKeyPressed(KEY_LEFT)) selected_slot = (selected_slot % 6 == 0) ? selected_slot - 6 + 6 : selected_slot - 6; // Simple logic
-                if (IsKeyPressed(KEY_RIGHT)) selected_slot = (selected_slot % 6 == 5) ? selected_slot : selected_slot + 1; // Simple logic
-                
-                // Correct wrap-around logic for 6-column grid
                 if (IsKeyPressed(KEY_LEFT)) {
-                    int32_t row = selected_slot / 6;
-                    int32_t col = selected_slot % 6;
-                    if (col > 0) selected_slot--; else selected_slot = (row > 0) ? (selected_slot - 6) : selected_slot;
+                    if (selected_slot % 6 != 0) selected_slot--;
                 }
                 if (IsKeyPressed(KEY_RIGHT)) {
-                    int32_t row = selected_slot / 6;
-                    int32_t col = selected_slot % 6;
-                    if (col < 5) selected_slot++; else selected_slot = (row < 3) ? (selected_slot + 6) : selected_slot;
+                    if (selected_slot % 6 != 5) selected_slot++;
                 }
                 if (IsKeyPressed(KEY_UP)) {
-                    int32_t row = selected_slot / 6;
-                    int32_t col = selected_slot % 6;
-                    if (row > 0) selected_slot -= 6; else selected_slot = selected_slot; 
+                    if (selected_slot >= 6) selected_slot -= 6;
                 }
                 if (IsKeyPressed(KEY_DOWN)) {
-                    int32_t row = selected_slot / 6;
-                    int32_t col = selected_slot % 6;
-                    if (row < 3) selected_slot += 6; else selected_slot = selected_slot;
+                    if (selected_slot + 6 < MAX_INVENTORY_SLOTS) selected_slot += 6;
                 }
 
                 if (IsKeyPressed(KEY_E)) {

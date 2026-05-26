@@ -1,3 +1,8 @@
+#include <stdint.h>
+#include "raylib.h"
+#include "ui/ui.h"
+#include "item/item.h"
+
 void UI_DrawInventory(Inventory* inv, int32_t* selected_slot) {
     int32_t screenW = GetScreenWidth();
     int32_t screenH = GetScreenHeight();
