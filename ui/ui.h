@@ -33,6 +33,7 @@ typedef struct {
 
 extern LogPanel g_log_panel;
 extern UIContext g_ui_context;
+extern int32_t g_inventory_selected_slot;
 
 void UI_Init(void);
 void UI_AddLog(const char* text);
@@ -47,5 +48,6 @@ void UI_DrawCharacterMenu(void);
 void UI_DrawSkillMenu(int32_t* selected_index);
 void UI_DrawTargetingOverlay(Entity* target);
 void UI_DrawInventory(Inventory* inv, int32_t* selected_slot);
+void UI_MoveInventorySlot(int32_t* slot, int direction); // 0: Left, 1: Right, 2: Up, 3: Down
 
 #endif // UI_UI_H

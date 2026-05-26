@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stddef.h>
 #include "raylib.h"
 #include "ui/ui.h"
 #include "item/item.h"

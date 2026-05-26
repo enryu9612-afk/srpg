@@ -2,10 +2,10 @@
 #include <string.h>
 #include <stdio.h>
 #include "raylib.h"
-#include "inventory_draw.c"
 
 LogPanel g_log_panel = {0};
 UIContext g_ui_context = {UI_STATE_GAME, false, 0};
+int32_t g_inventory_selected_slot = 0;
 
 void UI_Init(void) {
     g_log_panel.count = 0;
@@ -165,3 +165,4 @@ void UI_DrawTargetingOverlay(Entity* target) {
     DrawRectangleLinesEx((Rectangle){tx, ty, TILE_SIZE, TILE_SIZE}, 3, RED);
     DrawText("TARGET LOCKED", tx, ty - 20, 15, RED);
 }
+

@@ -162,16 +162,16 @@ int main(void) {
             } else if (g_ui_context.state == UI_STATE_INVENTORY) {
                 static int32_t selected_slot = 0;
                 if (IsKeyPressed(KEY_LEFT)) {
-                    if (selected_slot % 6 != 0) selected_slot--;
+                    UI_MoveInventorySlot(&selected_slot, 0);
                 }
                 if (IsKeyPressed(KEY_RIGHT)) {
-                    if (selected_slot % 6 != 5) selected_slot++;
+                    UI_MoveInventorySlot(&selected_slot, 1);
                 }
                 if (IsKeyPressed(KEY_UP)) {
-                    if (selected_slot >= 6) selected_slot -= 6;
+                    UI_MoveInventorySlot(&selected_slot, 2);
                 }
                 if (IsKeyPressed(KEY_DOWN)) {
-                    if (selected_slot + 6 < MAX_INVENTORY_SLOTS) selected_slot += 6;
+                    UI_MoveInventorySlot(&selected_slot, 3);
                 }
 
                 if (IsKeyPressed(KEY_E)) {
@@ -283,8 +283,7 @@ int main(void) {
         }
         
         if (g_ui_context.state == UI_STATE_INVENTORY) {
-            static int32_t selected_slot = 0;
-            UI_DrawInventory(&player.inventory, &selected_slot);
+            UI_DrawInventory(&player.inventory, &g_inventory_selected_slot);
         }
         
         Core_EndDraw();
