@@ -21,7 +21,8 @@ typedef enum {
     UI_STATE_GAME,
     UI_STATE_CHARACTER_MENU,
     UI_STATE_SKILL_SELECT,
-    UI_STATE_TARGETING
+    UI_STATE_TARGETING,
+    UI_STATE_INVENTORY
 } UIState;
 
 typedef struct {
@@ -45,5 +46,6 @@ const char* UI_GetRomanNumeral(int32_t level);
 void UI_DrawCharacterMenu(void);
 void UI_DrawSkillMenu(int32_t* selected_index);
 void UI_DrawTargetingOverlay(Entity* target);
+void UI_DrawInventory(Inventory* inv, int32_t* selected_slot);
 
 #endif // UI_UI_H

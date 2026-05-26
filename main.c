@@ -116,7 +116,6 @@ int main(void) {
                 }
 
                 if (IsKeyPressed(KEY_S)) {
-                    // Check if any enemy is in range before opening menu
                     if (enemy.hp > 0 && Battle_CheckRange(&player.base, &enemy.base, 1)) {
                         g_ui_context.state = UI_STATE_SKILL_SELECT;
                         g_ui_context.selected_skill_index = 0;
@@ -124,6 +123,10 @@ int main(void) {
                     } else {
                         UI_AddLog("No enemies in range to use skills.");
                     }
+                }
+                if (IsKeyPressed(KEY_I)) {
+                    g_ui_context.state = UI_STATE_INVENTORY;
+                    UI_AddLog("Inventory Opened.");
                 }
             } else if (g_ui_context.state == UI_STATE_SKILL_SELECT) {
                 if (IsKeyPressed(KEY_UP)) g_ui_context.selected_skill_index = (g_ui_context.selected_skill_index - 1 + 4) % 4;
@@ -155,6 +158,43 @@ int main(void) {
                 if (IsKeyPressed(KEY_ESCAPE)) {
                     g_ui_context.state = UI_STATE_GAME;
                     UI_AddLog("Targeting cancelled.");
+                }
+            } else if (g_ui_context.state == UI_STATE_INVENTORY) {
+                static int32_t selected_slot = 0;
+                if (IsKeyPressed(KEY_UP)) selected_slot = (selected_slot - 1 >= 0) ? selected_slot - 1 : MAX_INVENTORY_SLOTS - 1;
+                if (IsKeyPressed(KEY_DOWN)) selected_slot = (selected_slot + 1 < MAX_INVENTORY_SLOTS) ? selected_slot + 1 : 0;
+                if (IsKeyPressed(KEY_LEFT)) selected_slot = (selected_slot % 6 == 0) ? selected_slot - 6 + 6 : selected_slot - 6; // Simple logic
+                if (IsKeyPressed(KEY_RIGHT)) selected_slot = (selected_slot % 6 == 5) ? selected_slot : selected_slot + 1; // Simple logic
+                
+                // Correct wrap-around logic for 6-column grid
+                if (IsKeyPressed(KEY_LEFT)) {
+                    int32_t row = selected_slot / 6;
+                    int32_t col = selected_slot % 6;
+                    if (col > 0) selected_slot--; else selected_slot = (row > 0) ? (selected_slot - 6) : selected_slot;
+                }
+                if (IsKeyPressed(KEY_RIGHT)) {
+                    int32_t row = selected_slot / 6;
+                    int32_t col = selected_slot % 6;
+                    if (col < 5) selected_slot++; else selected_slot = (row < 3) ? (selected_slot + 6) : selected_slot;
+                }
+                if (IsKeyPressed(KEY_UP)) {
+                    int32_t row = selected_slot / 6;
+                    int32_t col = selected_slot % 6;
+                    if (row > 0) selected_slot -= 6; else selected_slot = selected_slot; 
+                }
+                if (IsKeyPressed(KEY_DOWN)) {
+                    int32_t row = selected_slot / 6;
+                    int32_t col = selected_slot % 6;
+                    if (row < 3) selected_slot += 6; else selected_slot = selected_slot;
+                }
+
+                if (IsKeyPressed(KEY_E)) {
+                    Operator_EquipItem(&player, selected_slot);
+                    UI_AddLog("Attempting to equip/use item...");
+                }
+                if (IsKeyPressed(KEY_ESCAPE)) {
+                    g_ui_context.state = UI_STATE_GAME;
+                    UI_AddLog("Inventory closed.");
                 }
             }
         }
@@ -254,6 +294,11 @@ int main(void) {
         if (g_ui_context.state == UI_STATE_SKILL_SELECT) {
             static int32_t selected_skill = 0;
             UI_DrawSkillMenu(&selected_skill);
+        }
+        
+        if (g_ui_context.state == UI_STATE_INVENTORY) {
+            static int32_t selected_slot = 0;
+            UI_DrawInventory(&player.inventory, &selected_slot);
         }
         
         Core_EndDraw();
