@@ -34,8 +34,9 @@ bool Battle_CheckHit(int32_t accuracy, int32_t evasion) {
 
 bool Battle_CheckRange(Entity* attacker, Entity* defender, int32_t range) {
     if (!attacker || !defender) return false;
-    int32_t dist = abs(attacker->x - defender->x) + abs(attacker->y - defender->y);
-    return dist <= range;
+    int32_t dx = abs(attacker->x - defender->x);
+    int32_t dy = abs(attacker->y - defender->y);
+    return (dx <= range && dy <= range); // Chebyshev Distance (Square/Octagonal)
 }
 
 // --- Combat Execution ---

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "item/item.h"
 
 typedef enum {
     ENTITY_TYPE_PLAYER,
@@ -60,6 +61,10 @@ typedef struct {
     
     OperatorStats special_stats;
     StatusEffect statuses[5]; // Max 5 active effects
+
+    // Equipment & Inventory
+    EquipmentSet equipment;
+    Inventory inventory;
 } Operator;
 
 typedef struct {
@@ -84,6 +89,8 @@ void Entity_Init(Entity* e, uint32_t id, int32_t x, int32_t y, EntityType type);
 // Operator API
 void Operator_Init(Operator* op, uint32_t id, int32_t x, int32_t y);
 void Operator_SetLevel(Operator* op, int32_t level);
+void Operator_UpdateFinalStats(Operator* op);
+void Operator_EquipItem(Operator* op, int32_t inventory_slot);
 
 // Enemy API
 void Enemy_Init(Enemy* en, uint32_t id, int32_t x, int32_t y, int32_t level);

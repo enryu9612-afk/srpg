@@ -27,6 +27,7 @@ typedef enum {
 typedef struct {
     UIState state;
     bool is_open;
+    int32_t selected_skill_index; // Added for skill selection sharing
 } UIContext;
 
 extern LogPanel g_log_panel;

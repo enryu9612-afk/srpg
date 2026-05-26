@@ -15,6 +15,7 @@ int main(void) {
         fprintf(stderr, "[Main Error] Core initialization failed. Exiting.\\n");
         return 1;
     }
+    SetExitKey(KEY_NULL); // Fix: Prevent ESC from closing the game
     Core_InitCamera();
     UI_Init();
 
@@ -115,13 +116,18 @@ int main(void) {
                 }
 
                 if (IsKeyPressed(KEY_S)) {
-                    g_ui_context.state = UI_STATE_SKILL_SELECT;
-                    UI_AddLog("Skill Menu Opened. Select a skill.");
+                    // Check if any enemy is in range before opening menu
+                    if (enemy.hp > 0 && Battle_CheckRange(&player.base, &enemy.base, 1)) {
+                        g_ui_context.state = UI_STATE_SKILL_SELECT;
+                        g_ui_context.selected_skill_index = 0;
+                        UI_AddLog("Skill Menu Opened. Select a skill.");
+                    } else {
+                        UI_AddLog("No enemies in range to use skills.");
+                    }
                 }
             } else if (g_ui_context.state == UI_STATE_SKILL_SELECT) {
-                static int32_t selected_skill = 0;
-                if (IsKeyPressed(KEY_UP)) selected_skill = (selected_skill - 1 + 4) % 4;
-                if (IsKeyPressed(KEY_DOWN)) selected_skill = (selected_skill + 1) % 4;
+                if (IsKeyPressed(KEY_UP)) g_ui_context.selected_skill_index = (g_ui_context.selected_skill_index - 1 + 4) % 4;
+                if (IsKeyPressed(KEY_DOWN)) g_ui_context.selected_skill_index = (g_ui_context.selected_skill_index + 1) % 4;
                 if (IsKeyPressed(KEY_ENTER)) {
                     g_ui_context.state = UI_STATE_TARGETING;
                     UI_AddLog("Targeting Mode. Select target and press ENTER.");
@@ -172,6 +178,17 @@ int main(void) {
 
         Core_Draw();
         BeginMode2D(g_game_camera.camera);
+        
+        // --- Skill Range Visualization ---
+        if (g_ui_context.state == UI_STATE_SKILL_SELECT || g_ui_context.state == UI_STATE_TARGETING) {
+            int32_t range = 1; // Basic range for now
+            for (int32_t dy = -range; dy <= range; dy++) {
+                for (int32_t dx = -range; dx <= range; dx++) {
+                    if (dx == 0 && dy == 0) continue;
+                    DrawRectangle( (player.base.x + dx) * TILE_SIZE, (player.base.y + dy) * TILE_SIZE, TILE_SIZE, TILE_SIZE, Fade(ORANGE, 0.4f));
+                }
+            }
+        }
         
         if (g_ui_context.state == UI_STATE_TARGETING) {
             UI_DrawTargetingOverlay((Entity*)&enemy);

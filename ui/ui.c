@@ -76,11 +76,11 @@ void UI_DrawStatRow(Rectangle rect, const char* label, int32_t level, int32_t po
     const char* roman = UI_GetRomanNumeral(level);
     DrawText(roman, (int32_t)rect.x + 80, (int32_t)rect.y + 5, 20, WHITE);
 
-    // Arrow Button [ -> ]
+    // Arrow Button [ + ]
     Rectangle btn = { rect.x + rect.width - 40, rect.y + 5, 30, 20 };
     Color btnColor = (points > 0) ? GOLD : DARKGRAY;
     DrawRectangleRec(btn, btnColor);
-    DrawText("->", (int32_t)btn.x + 5, (int32_t)btn.y + 2, 18, BLACK);
+    DrawText("+", (int32_t)btn.x + 10, (int32_t)btn.y + 2, 18, BLACK);
 
     if (CheckCollisionPointRec(GetMousePosition(), btn) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
         *clicked = true;
@@ -94,7 +94,7 @@ void UI_DrawCharacterMenu(void) {
     int32_t screenH = GetScreenHeight();
     
     // Background dim
-    DrawRectangle(0, 0, screenW, screenH, Fade(BLACK, 0.7f));
+    DrawRectangle(0, 0, screenW, screenH, Fade(BLACK, 0.95f));
     
     // 1. Left: Inventory / Quick Slots Area
     Rectangle invRect = { screenW * 0.1f, screenH * 0.2f, 300, screenH * 0.6f };
