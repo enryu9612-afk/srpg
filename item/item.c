@@ -3,31 +3,6 @@
 #include <string.h>
 #include <stdio.h>
 
-Item* Item_Create(uint32_t id, const char* name, ItemType type, ItemGrade grade) {
-    Item* item = (Item*)malloc(sizeof(Item));
-    if (!item) return NULL;
-    
-    item->id = id;
-    strncpy(item->name, name, 63);
-    item->name[63] = '\0';
-    item->type = type;
-    item->grade = grade;
-    
-    return item;
-}
-
-void Item_SetEquipment(Item* item, EquipSlot slot, StatBonus bonus) {
-    if (!item || item->type != ITEM_TYPE_EQUIPMENT) return;
-    item->data.equipment.slot = slot;
-    item->data.equipment.bonus = bonus;
-}
-
-void Item_SetConsumable(Item* item, int32_t heal, int32_t sp) {
-    if (!item || item->type != ITEM_TYPE_CONSUMABLE) return;
-    item->data.consumable.heal_amount = heal;
-    item->data.consumable.sp_restore = sp;
-}
-
 bool Inventory_Add(Inventory* inv, Item* item) {
     if (!inv || !item) return false;
     

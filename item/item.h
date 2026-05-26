@@ -52,6 +52,25 @@ typedef struct {
     } data;
 } Item;
 
+// 아이템 템플릿 (데이터베이스용 정적 데이터)
+typedef struct {
+    uint32_t id;
+    char name[64];
+    ItemType type;
+    ItemGrade grade;
+    union {
+        struct {
+            int32_t heal_amount;
+            int32_t sp_restore;
+        } consumable;
+        struct {
+            EquipSlot slot;
+            StatBonus bonus;
+            int32_t weight;
+        } equipment;
+    } data;
+} ItemTemplate;
+
 // 인벤토리 구조체
 #define MAX_INVENTORY_SLOTS 24
 typedef struct {
@@ -66,11 +85,12 @@ typedef struct {
     Item* accessory;
 } EquipmentSet;
 
-// API
-Item* Item_Create(uint32_t id, const char* name, ItemType type, ItemGrade grade);
-void Item_SetEquipment(Item* item, EquipSlot slot, StatBonus bonus);
-void Item_SetConsumable(Item* item, int32_t heal, int32_t sp);
+// DB API
+Item* Item_CreateFromTemplate(uint32_t id);
+extern const ItemTemplate g_item_database[];
+extern const int32_t g_item_database_count;
 
+// Inventory API
 bool Inventory_Add(Inventory* inv, Item* item);
 void Inventory_Remove(Inventory* inv, int32_t slot_index);
 
