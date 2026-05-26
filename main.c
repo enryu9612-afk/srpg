@@ -12,7 +12,7 @@ int main(void) {
     printf("[Main] Starting Roguelike SRPG - Phase 5 Integration...\\n");
 
     if (!Core_Init()) {
-        fprintf(stderr, \"[Main Error] Core initialization failed. Exiting.\\n\");
+        fprintf(stderr, "[Main Error] Core initialization failed. Exiting.\\n");
         return 1;
     }
     Core_InitCamera();
@@ -20,10 +20,10 @@ int main(void) {
 
     Map* game_map = Map_Create(60, 30);
     if (!Map_Generate(game_map, (uint32_t)time(NULL))) {
-        fprintf(stderr, \"[Main Error] Map generation failed. Exiting.\\n\");
+        fprintf(stderr, "[Main Error] Map generation failed. Exiting.\\n");
         return 1;
     }
-    UI_AddLog(\"World generated successfully.\");
+    UI_AddLog("World generated successfully.");
 
     Operator player;
     Operator_Init(&player, 1, 0, 0);
@@ -54,8 +54,8 @@ int main(void) {
             }
         }
     }
-    UI_AddLog(\"Operator deployed to the sector.\");
-    UI_AddLog(\"A hostile enemy has appeared nearby!\");
+    UI_AddLog("Operator deployed to the sector.");
+    UI_AddLog("A hostile enemy has appeared nearby!");
 
     Core_UpdateCamera(player.base.x, player.base.y);
 
@@ -66,18 +66,18 @@ int main(void) {
             if (Battle_CheckRange(&player.base, &enemy.base, 5)) {
                 if (!g_battle_state.is_combat_active) {
                     g_battle_state.is_combat_active = true;
-                    UI_AddLog(\"!!! COMBAT STARTED !!!\");
+                    UI_AddLog("!!! COMBAT STARTED !!!");
                 }
             } else {
                 if (g_battle_state.is_combat_active) {
                     g_battle_state.is_combat_active = false;
-                    UI_AddLog(\"Combat ended. Returning to exploration mode.\");
+                    UI_AddLog("Combat ended. Returning to exploration mode.");
                 }
             }
         } else {
             if (g_battle_state.is_combat_active) {
                 g_battle_state.is_combat_active = false;
-                UI_AddLog(\"Enemy defeated! Exploration mode restored.\");
+                UI_AddLog("Enemy defeated! Exploration mode restored.");
             }
         }
 
@@ -94,18 +94,18 @@ int main(void) {
 
                 if (Map_IsWalkable(game_map, next_x, next_y)) {
                     if (next_x == enemy.base.x && next_y == enemy.base.y) {
-                        UI_AddLog(\"Blocked by an enemy!\");
+                        UI_AddLog("Blocked by an enemy!");
                     } else {
                         player.base.x = next_x;
                         player.base.y = next_y;
                         Core_UpdateCamera(player.base.x, player.base.y);
-                        UI_AddLog(\"Moving...\");
+                        UI_AddLog("Moving...");
                         if (g_battle_state.is_combat_active) {
                             Battle_NextTurn();
                         }
                     }
                 } else {
-                    UI_AddLog(\"Blocked by a wall!\");
+                    UI_AddLog("Blocked by a wall!");
                 }
                 
                 if (g_battle_state.is_combat_active) {
@@ -117,16 +117,16 @@ int main(void) {
                 int32_t result = Battle_ExecuteAttack(&player, (Entity*)&enemy);
                 if (result > 0) {
                     char buf[64];
-                    sprintf(buf, \"Attack Hit! Dealt %d damage. Enemy HP: %d\", result, enemy.hp);
+                    sprintf(buf, "Attack Hit! Dealt %d damage. Enemy HP: %d", result, enemy.hp);
                     UI_AddLog(buf);
                     Battle_NextTurn(); 
                 } else if (result == 0) {
-                    UI_AddLog(\"Attack Missed!\");
+                    UI_AddLog("Attack Missed!");
                     Battle_NextTurn(); 
                 } else if (result == -1) {
-                    UI_AddLog(\"Target is too far away!\");
+                    UI_AddLog("Target is too far away!");
                 } else if (result == -2) {
-                    UI_AddLog(\"Invalid attack target!\");
+                    UI_AddLog("Invalid attack target!");
                 }
             }
         }
@@ -135,7 +135,7 @@ int main(void) {
             static float enemy_timer = 0;
             enemy_timer += GetFrameTime();
             if (enemy_timer >= 0.1f) { 
-                UI_AddLog(\"Enemy is thinking...\");
+                UI_AddLog("Enemy is thinking...");
                 Battle_UpdateEnemyAI(&enemy, &player, game_map);
                 Battle_UpdateStatusEffects(&enemy.base);
                 Battle_NextTurn();
@@ -146,7 +146,7 @@ int main(void) {
         // --- Character Menu Logic ---
         if (IsKeyPressed(KEY_C)) {
             g_ui_context.is_open = !g_ui_context.is_open;
-            UI_AddLog(g_ui_context.is_open ? \"Menu Opened\" : \"Menu Closed\");
+            UI_AddLog(g_ui_context.is_open ? "Menu Opened" : "Menu Closed");
         }
 
         Core_Draw();
@@ -158,7 +158,7 @@ int main(void) {
                 int32_t dy = y - player.base.y;
                 int32_t distSq = dx*dx + dy*dy;
                 Color color;
-                const char* symbol = \" \";
+                const char* symbol = " ";
                 int wallFontSize = 12;
                 int floorFontSize = 8;
                 int offset_x = (TILE_SIZE - 8) / 2; 
@@ -170,11 +170,11 @@ int main(void) {
                     bool lft = (x > 0 && game_map->tiles[y * game_map->width + (x-1)] == TILE_WALL);
                     bool rgt = (x < game_map->width-1 && game_map->tiles[y * game_map->width + (x+1)] == TILE_WALL);
 
-                    if (top && bot && lft && rgt) symbol = \"#\";
-                    else if (top && bot) symbol = \"|\";
-                    else if (lft && rgt) symbol = \"#\";
-                    else if (top || bot || lft || rgt) symbol = \"+\";
-                    else symbol = \"#\";
+                    if (top && bot && lft && rgt) symbol = "#";
+                    else if (top && bot) symbol = "|";
+                    else if (lft && rgt) symbol = "#";
+                    else if (top || bot || lft || rgt) symbol = "+";
+                    else symbol = "#";
 
                     if (distSq < 100) color = LIGHTGRAY;
                     else if (distSq < 400) color = DARKGRAY;
@@ -184,22 +184,22 @@ int main(void) {
                 } else {
                     color = (distSq < 100) ? GRAY : (distSq < 400) ? (Color){70, 70, 70, 255} : (Color){30, 30, 30, 255};
                     uint32_t detail_seed = (x * 12345) ^ (y * 67890);
-                    if (detail_seed % 100 < 2) { symbol = \"*\"; color = GOLD; } 
-                    else if (detail_seed % 100 < 4) { symbol = \"o\"; color = LIME; } 
-                    else if (detail_seed % 100 < 6) { symbol = \"~\"; color = SKYBLUE; } 
-                    else { symbol = \".\";}
+                    if (detail_seed % 100 < 2) { symbol = "*"; color = GOLD; } 
+                    else if (detail_seed % 100 < 4) { symbol = "o"; color = LIME; } 
+                    else if (detail_seed % 100 < 6) { symbol = "~"; color = SKYBLUE; } 
+                    else { symbol = ".";}
                     
-                    DrawText(symbol, x * TILE_SIZE + f_offset_x, y * TILE_SIZE + f_offset_y, floorFontSize, color);
+                    DrawText(symbol, x * TILE_SIZE + offset_x, y * TILE_SIZE + offset_y, floorFontSize, color);
                 }
             }
         }
 
         if (enemy.hp > 0) {
-            DrawText(\"E\", enemy.base.x * TILE_SIZE + (TILE_SIZE-10)/2, enemy.base.y * TILE_SIZE + (TILE_SIZE-10)/2, TILE_SIZE - 6, RED);
+            DrawText("E", enemy.base.x * TILE_SIZE + (TILE_SIZE-10)/2, enemy.base.y * TILE_SIZE + (TILE_SIZE-10)/2, TILE_SIZE - 6, RED);
         }
 
         if (player.base.x >= 0 && player.base.y >= 0) {
-            DrawText(\"@\", player.base.x * TILE_SIZE + (TILE_SIZE-10)/2, player.base.y * TILE_SIZE + (TILE_SIZE-10)/2, TILE_SIZE - 6, BLUE);
+            DrawText("@", player.base.x * TILE_SIZE + (TILE_SIZE-10)/2, player.base.y * TILE_SIZE + (TILE_SIZE-10)/2, TILE_SIZE - 6, BLUE);
         }
 
         EndMode2D();
@@ -213,7 +213,7 @@ int main(void) {
 
     Map_Destroy(game_map);
     Core_Shutdown();
-    printf(\"[Main] Game exited cleanly.\\n\");
+    printf("[Main] Game exited cleanly.\\n");
 
     return 0;
 }
