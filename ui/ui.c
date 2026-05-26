@@ -4,7 +4,7 @@
 #include "raylib.h"
 
 LogPanel g_log_panel = {0};
-UIContext g_ui_context = {UI_STATE_GAME, false};
+UIContext g_ui_context = {UI_STATE_GAME, false, 0};
 
 void UI_Init(void) {
     g_log_panel.count = 0;
