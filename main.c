@@ -160,22 +160,21 @@ int main(void) {
                     UI_AddLog("Targeting cancelled.");
                 }
             } else if (g_ui_context.state == UI_STATE_INVENTORY) {
-                static int32_t selected_slot = 0;
                 if (IsKeyPressed(KEY_LEFT)) {
-                    UI_MoveInventorySlot(&selected_slot, 0);
+                    UI_MoveInventorySlot(&g_inventory_selected_slot, 0);
                 }
                 if (IsKeyPressed(KEY_RIGHT)) {
-                    UI_MoveInventorySlot(&selected_slot, 1);
+                    UI_MoveInventorySlot(&g_inventory_selected_slot, 1);
                 }
                 if (IsKeyPressed(KEY_UP)) {
-                    UI_MoveInventorySlot(&selected_slot, 2);
+                    UI_MoveInventorySlot(&g_inventory_selected_slot, 2);
                 }
                 if (IsKeyPressed(KEY_DOWN)) {
-                    UI_MoveInventorySlot(&selected_slot, 3);
+                    UI_MoveInventorySlot(&g_inventory_selected_slot, 3);
                 }
 
                 if (IsKeyPressed(KEY_E)) {
-                    Operator_EquipItem(&player, selected_slot);
+                    Operator_EquipItem(&player, g_inventory_selected_slot);
                     UI_AddLog("Attempting to equip/use item...");
                 }
                 if (IsKeyPressed(KEY_ESCAPE)) {

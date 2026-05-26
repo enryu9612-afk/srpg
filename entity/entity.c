@@ -31,6 +31,21 @@ void Operator_Init(Operator* op, uint32_t id, int32_t x, int32_t y) {
     op->evasion = 10;
     op->magic_res = 10;
     op->crit_chance = 5; // Initialize crit chance
+
+    // Equipment & Inventory 초기화 (반드시 있어야 함 — 없으면 SEGFAULT 발생)
+    for (int32_t i = 0; i < MAX_INVENTORY_SLOTS; i++) {
+        op->inventory.slots[i] = NULL;
+    }
+    op->inventory.item_count = 0;
+    op->equipment.weapon    = NULL;
+    op->equipment.armor     = NULL;
+    op->equipment.accessory = NULL;
+
+    // Status Effects 초기화
+    for (int32_t i = 0; i < 5; i++) {
+        op->statuses[i].type     = STATUS_NONE;
+        op->statuses[i].duration = 0;
+    }
     
     // Special Stats (Initial Level I)
     op->special_stats.eye = 1;
@@ -72,5 +87,5 @@ void Enemy_Init(Enemy* en, uint32_t id, int32_t x, int32_t y, int32_t level) {
     en->evasion = 5 + level;
     en->magic_res = 5 + level;
     en->exp_reward = level * 2;
-    printf("[Entity] Enemy initialized: ID=%u, Level=%d, Pos=(%d, %d)\n", id, x, y);
+    printf("[Entity] Enemy initialized: ID=%u, Level=%d, Pos=(%d, %d)\n", id, level, x, y);
 }
