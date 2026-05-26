@@ -7,12 +7,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <stdbool.h>
+
+#define MAX_ENEMIES 10
+#define PLAYER_ATTACK_RANGE 1
 
 int main(void) {
-    printf("[Main] Starting Roguelike SRPG - Phase 5 Integration...\\n");
+    printf("[Main] Starting Roguelike SRPG - Phase 5 Integration...\n");
 
     if (!Core_Init()) {
-        fprintf(stderr, "[Main Error] Core initialization failed. Exiting.\\n");
+        fprintf(stderr, "[Main Error] Core initialization failed. Exiting.\n");
         return 1;
     }
     SetExitKey(KEY_NULL); // Fix: Prevent ESC from closing the game
@@ -21,7 +25,7 @@ int main(void) {
 
     Map* game_map = Map_Create(60, 30);
     if (!Map_Generate(game_map, (uint32_t)time(NULL))) {
-        fprintf(stderr, "[Main Error] Map generation failed. Exiting.\\n");
+        fprintf(stderr, "[Main Error] Map generation failed. Exiting.\n");
         return 1;
     }
     UI_AddLog("World generated successfully.");
@@ -29,8 +33,37 @@ int main(void) {
     Operator player;
     Operator_Init(&player, 1, 0, 0);
     
-    Enemy enemy;
-    Enemy_Init(&enemy, 101, 0, 0, 1);
+    Enemy enemies[MAX_ENEMIES];
+    bool enemy_active[MAX_ENEMIES] = {false};
+    
+    // Spawn multiple enemies in different rooms
+    int32_t enemies_spawned = 0;
+    int32_t spawn_attempts = 0;
+    while (enemies_spawned < 5 && spawn_attempts < 100) {
+        spawn_attempts++;
+        int32_t ex, ey;
+        if (Map_FindRoomSpawnPos(game_map, 0, 0, &ex, &ey)) { // Simplified search
+            // Check if this position is already occupied by another enemy
+            bool occupied = false;
+            for (int i = 0; i < MAX_ENEMIES; i++) {
+                if (enemy_active[i] && enemies[i].base.x == ex && enemies[i].base.y == ey) {
+                    occupied = true;
+                    break;
+                }
+            }
+            
+            if (!occupied) {
+                int32_t idx = -1;
+                for(int i=0; i<MAX_ENEMIES; i++) if(!enemy_active[i]) { idx = i; break; }
+                
+                if (idx != -1) {
+                    Enemy_Init(&enemies[idx], 100 + idx, ex, ey, 1);
+                    enemy_active[idx] = true;
+                    enemies_spawned++;
+                }
+            }
+        }
+    }
 
     bool found_start = false;
     for (int32_t y = 0; y < game_map->height && !found_start; y++) {
@@ -38,48 +71,27 @@ int main(void) {
             if (Map_IsWalkable(game_map, x, y)) {
                 player.base.x = x;
                 player.base.y = y;
-                int32_t ex, ey;
-                if (Map_FindRoomSpawnPos(game_map, x, y, &ex, &ey)) {
-                    enemy.base.x = ex;
-                    enemy.base.y = ey;
-                } else {
-                    if (!Map_FindSafeSpawnPos(game_map, x, y, &ex, &ey)) {
-                        enemy.base.x = x + 1;
-                        enemy.base.y = y;
-                    } else {
-                        enemy.base.x = ex;
-                        enemy.base.y = ey;
-                    }
-                }
                 found_start = true;
             }
         }
     }
     UI_AddLog("Operator deployed to the sector.");
-    UI_AddLog("A hostile enemy has appeared nearby!");
+    UI_AddLog("Hostile enemies detected in the sector!");
 
     Core_UpdateCamera(player.base.x, player.base.y);
+
+    Vector2 target_cursor = {0, 0};
+    int32_t selected_enemy_index = -1;
 
     while (g_game_state.is_running) {
         Core_Update();
 
-        if (enemy.hp > 0) {
-            if (Battle_CheckRange(&player.base, &enemy.base, 5)) {
-                if (!g_battle_state.is_combat_active) {
-                    g_battle_state.is_combat_active = true;
-                    UI_AddLog("!!! COMBAT STARTED !!!");
-                }
-            } else {
-                if (g_battle_state.is_combat_active) {
-                    g_battle_state.is_combat_active = false;
-                    UI_AddLog("Combat ended. Returning to exploration mode.");
-                }
-            }
-        } else {
-            if (g_battle_state.is_combat_active) {
-                g_battle_state.is_combat_active = false;
-                g_battle_state.current_turn = BATTLE_TURN_PLAYER;
-                UI_AddLog("Enemy defeated! Exploration mode restored.");
+        // Check for any active combat for the log panel
+        bool any_enemy_alive = false;
+        for (int i = 0; i < MAX_ENEMIES; i++) {
+            if (enemy_active[i] && enemies[i].hp > 0) {
+                any_enemy_alive = true;
+                break;
             }
         }
 
@@ -96,84 +108,102 @@ int main(void) {
                     int32_t next_y = player.base.y + dy;
 
                     if (Map_IsWalkable(game_map, next_x, next_y)) {
-                        if (next_x == enemy.base.x && next_y == enemy.base.y) {
+                        // Collision check with all active enemies
+                        bool blocked = false;
+                        for (int i = 0; i < MAX_ENEMIES; i++) {
+                            if (enemy_active[i] && enemies[i].base.x == next_x && enemies[i].base.y == next_y) {
+                                blocked = true;
+                                break;
+                            }
+                        }
+
+                        if (blocked) {
                             UI_AddLog("Blocked by an enemy!");
                         } else {
                             player.base.x = next_x;
                             player.base.y = next_y;
                             Core_UpdateCamera(player.base.x, player.base.y);
                             UI_AddLog("Moving...");
-                            if (g_battle_state.is_combat_active) {
-                                Battle_NextTurn();
-                            }
                         }
                     } else {
                         UI_AddLog("Blocked by a wall!");
                     }
-                    
-                    if (g_battle_state.is_combat_active) {
-                        Battle_UpdateStatusEffects(&player.base);
-                    }
                 }
 
                 if (IsKeyPressed(KEY_S)) {
-                    if (enemy.hp > 0 && Battle_CheckRange(&player.base, &enemy.base, 1)) {
-                        g_ui_context.state = UI_STATE_SKILL_SELECT;
-                        g_ui_context.selected_skill_index = 0;
-                        UI_AddLog("Skill Menu Opened. Select a skill.");
-                    } else {
-                        UI_AddLog("No enemies in range to use skills.");
-                    }
+                    g_ui_context.state = UI_STATE_TARGETING;
+                    target_cursor.x = player.base.x;
+                    target_cursor.y = player.base.y;
+                    selected_enemy_index = -1;
+                    UI_AddLog("Targeting Mode. Move cursor to select enemy.");
                 }
                 if (IsKeyPressed(KEY_I)) {
                     g_ui_context.state = UI_STATE_INVENTORY;
                     UI_AddLog("Inventory Opened.");
                 }
-            } else if (g_ui_context.state == UI_STATE_SKILL_SELECT) {
-                if (IsKeyPressed(KEY_UP)) g_ui_context.selected_skill_index = (g_ui_context.selected_skill_index - 1 + 4) % 4;
-                if (IsKeyPressed(KEY_DOWN)) g_ui_context.selected_skill_index = (g_ui_context.selected_skill_index + 1) % 4;
-                if (IsKeyPressed(KEY_ENTER)) {
-                    g_ui_context.state = UI_STATE_TARGETING;
-                    UI_AddLog("Targeting Mode. Select target and press ENTER.");
-                }
-                if (IsKeyPressed(KEY_ESCAPE)) {
-                    g_ui_context.state = UI_STATE_GAME;
-                    UI_AddLog("Skill selection cancelled.");
-                }
             } else if (g_ui_context.state == UI_STATE_TARGETING) {
-                if (IsKeyPressed(KEY_ENTER)) {
-                    int32_t result = Battle_ExecuteAttack(&player, (Entity*)&enemy);
-                    if (result > 0) {
-                        char buf[64];
-                        sprintf(buf, "Attack Hit! Dealt %d damage. Enemy HP: %d", result, enemy.hp);
-                        UI_AddLog(buf);
-                        Battle_NextTurn(); 
-                    } else if (result == 0) {
-                        UI_AddLog("Attack Missed!");
-                        Battle_NextTurn(); 
-                    } else {
-                        UI_AddLog("Attack failed or target out of range.");
+                int32_t dx = 0, dy = 0;
+                if (IsKeyPressed(KEY_UP))    dy = -1;
+                else if (IsKeyPressed(KEY_DOWN))  dy = 1;
+                else if (IsKeyPressed(KEY_LEFT))  dx = -1;
+                else if (IsKeyPressed(KEY_RIGHT)) dx = 1;
+
+                if (dx != 0 || dy != 0) {
+                    int32_t next_tx = (int32_t)target_cursor.x + dx;
+                    int32_t next_ty = (int32_t)target_cursor.y + dy;
+                    
+                    // Limit cursor to attack range (Chebyshev)
+                    int32_t dist = (abs(next_tx - player.base.x) > abs(next_ty - player.base.y)) 
+                                   ? abs(next_tx - player.base.x) : abs(next_ty - player.base.y);
+                    
+                    if (dist <= PLAYER_ATTACK_RANGE && Map_IsWalkable(game_map, next_tx, next_ty)) {
+                        target_cursor.x = next_tx;
+                        target_cursor.y = next_ty;
                     }
-                    g_ui_context.state = UI_STATE_GAME;
+                }
+
+                // Update selected enemy based on cursor position
+                selected_enemy_index = -1;
+                for (int i = 0; i < MAX_ENEMIES; i++) {
+                    if (enemy_active[i] && enemies[i].base.x == (int32_t)target_cursor.x && enemies[i].base.y == (int32_t)target_cursor.y) {
+                        selected_enemy_index = i;
+                        break;
+                    }
+                }
+
+                if (IsKeyPressed(KEY_ENTER)) {
+                    if (selected_enemy_index != -1) {
+                        int32_t result = Battle_ExecuteAttack(&player, (Entity*)&enemies[selected_enemy_index]);
+                        if (result > 0) {
+                            char buf[64];
+                            sprintf(buf, "Attack Hit! Dealt %d damage. Enemy HP: %d", result, enemies[selected_enemy_index].hp);
+                            UI_AddLog(buf);
+                        } else if (result == 0) {
+                            UI_AddLog("Attack Missed!");
+                        }
+                        
+                        // Check if enemy died
+                        if (enemies[selected_enemy_index].hp <= 0) {
+                            enemy_active[selected_enemy_index] = false;
+                            UI_AddLog("Enemy eliminated!");
+                        }
+                        
+                        Battle_NextTurn();
+                        g_ui_context.state = UI_STATE_GAME;
+                    } else {
+                        UI_AddLog("No target selected!");
+                    }
                 }
                 if (IsKeyPressed(KEY_ESCAPE)) {
                     g_ui_context.state = UI_STATE_GAME;
                     UI_AddLog("Targeting cancelled.");
                 }
             } else if (g_ui_context.state == UI_STATE_INVENTORY) {
-                if (IsKeyPressed(KEY_LEFT)) {
-                    UI_MoveInventorySlot(&g_inventory_selected_slot, 0);
-                }
-                if (IsKeyPressed(KEY_RIGHT)) {
-                    UI_MoveInventorySlot(&g_inventory_selected_slot, 1);
-                }
-                if (IsKeyPressed(KEY_UP)) {
-                    UI_MoveInventorySlot(&g_inventory_selected_slot, 2);
-                }
-                if (IsKeyPressed(KEY_DOWN)) {
-                    UI_MoveInventorySlot(&g_inventory_selected_slot, 3);
-                }
-
+                if (IsKeyPressed(KEY_LEFT)) UI_MoveInventorySlot(&g_inventory_selected_slot, 0);
+                if (IsKeyPressed(KEY_RIGHT)) UI_MoveInventorySlot(&g_inventory_selected_slot, 1);
+                if (IsKeyPressed(KEY_UP)) UI_MoveInventorySlot(&g_inventory_selected_slot, 2);
+                if (IsKeyPressed(KEY_DOWN)) UI_MoveInventorySlot(&g_inventory_selected_slot, 3);
+                
                 if (IsKeyPressed(KEY_E)) {
                     Operator_EquipItem(&player, g_inventory_selected_slot);
                     UI_AddLog("Attempting to equip/use item...");
@@ -185,13 +215,19 @@ int main(void) {
             }
         }
 
-        if (g_battle_state.current_turn != BATTLE_TURN_PLAYER && enemy.hp > 0) {
+        // Enemy Turn Logic
+        if (g_battle_state.current_turn != BATTLE_TURN_PLAYER && any_enemy_alive) {
             static float enemy_timer = 0;
             enemy_timer += GetFrameTime();
-            if (enemy_timer >= 0.1f) { 
-                UI_AddLog("Enemy is thinking...");
-                Battle_UpdateEnemyAI(&enemy, &player, game_map);
-                Battle_UpdateStatusEffects(&enemy.base);
+            if (enemy_timer >= 0.5f) { 
+                // Simple AI: find a random active enemy to act
+                for (int i = 0; i < MAX_ENEMIES; i++) {
+                    if (enemy_active[i]) {
+                        Battle_UpdateEnemyAI(&enemies[i], &player, game_map);
+                        Battle_UpdateStatusEffects(&enemies[i].base);
+                        break; 
+                    }
+                }
                 Battle_NextTurn();
                 enemy_timer = 0;
             }
@@ -205,19 +241,16 @@ int main(void) {
         Core_Draw();
         BeginMode2D(g_game_camera.camera);
         
-        // --- Skill Range Visualization ---
-        if (g_ui_context.state == UI_STATE_SKILL_SELECT || g_ui_context.state == UI_STATE_TARGETING) {
-            int32_t range = 1; // Basic range for now
-            for (int32_t dy = -range; dy <= range; dy++) {
-                for (int32_t dx = -range; dx <= range; dx++) {
+        // --- Range Visualization ---
+        if (g_ui_context.state == UI_STATE_TARGETING) {
+            for (int32_t dy = -PLAYER_ATTACK_RANGE; dy <= PLAYER_ATTACK_RANGE; dy++) {
+                for (int32_t dx = -PLAYER_ATTACK_RANGE; dx <= PLAYER_ATTACK_RANGE; dx++) {
                     if (dx == 0 && dy == 0) continue;
-                    DrawRectangle( (player.base.x + dx) * TILE_SIZE, (player.base.y + dy) * TILE_SIZE, TILE_SIZE, TILE_SIZE, Fade(ORANGE, 0.4f));
+                    DrawRectangle((player.base.x + dx) * TILE_SIZE, (player.base.y + dy) * TILE_SIZE, TILE_SIZE, TILE_SIZE, Fade(ORANGE, 0.3f));
                 }
             }
-        }
-        
-        if (g_ui_context.state == UI_STATE_TARGETING) {
-            UI_DrawTargetingOverlay((Entity*)&enemy);
+            // Draw Targeting Cursor
+            DrawRectangleLinesEx((Rectangle){target_cursor.x * TILE_SIZE, target_cursor.y * TILE_SIZE, TILE_SIZE, TILE_SIZE}, 3, RED);
         }
         
         for (int32_t y = 0; y < game_map->height; y++) {
@@ -262,8 +295,12 @@ int main(void) {
             }
         }
 
-        if (enemy.hp > 0) {
-            DrawText("E", enemy.base.x * TILE_SIZE + (TILE_SIZE-10)/2, enemy.base.y * TILE_SIZE + (TILE_SIZE-10)/2, TILE_SIZE - 6, RED);
+        // Draw Enemies
+        for (int i = 0; i < MAX_ENEMIES; i++) {
+            if (enemy_active[i]) {
+                Color eColor = (i == selected_enemy_index) ? YELLOW : RED;
+                DrawText("E", enemies[i].base.x * TILE_SIZE + (TILE_SIZE-10)/2, enemies[i].base.y * TILE_SIZE + (TILE_SIZE-10)/2, TILE_SIZE - 6, eColor);
+            }
         }
 
         if (player.base.x >= 0 && player.base.y >= 0) {
@@ -277,11 +314,6 @@ int main(void) {
             UI_DrawCharacterMenu();
         }
         
-        if (g_ui_context.state == UI_STATE_SKILL_SELECT) {
-            static int32_t selected_skill = 0;
-            UI_DrawSkillMenu(&selected_skill);
-        }
-        
         if (g_ui_context.state == UI_STATE_INVENTORY) {
             UI_DrawInventory(&player.inventory, &g_inventory_selected_slot);
         }
@@ -291,7 +323,7 @@ int main(void) {
 
     Map_Destroy(game_map);
     Core_Shutdown();
-    printf("[Main] Game exited cleanly.\\n");
+    printf("[Main] Game exited cleanly.\n");
 
     return 0;
 }
