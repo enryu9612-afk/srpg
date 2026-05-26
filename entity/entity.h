@@ -56,6 +56,7 @@ typedef struct {
     int32_t accuracy;
     int32_t evasion;
     int32_t magic_res;
+    int32_t crit_chance; // Added for Hand stat
     
     OperatorStats special_stats;
     StatusEffect statuses[5]; // Max 5 active effects
