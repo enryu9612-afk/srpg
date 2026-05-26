@@ -78,6 +78,7 @@ int main(void) {
         } else {
             if (g_battle_state.is_combat_active) {
                 g_battle_state.is_combat_active = false;
+                g_battle_state.current_turn = BATTLE_TURN_PLAYER;
                 UI_AddLog("Enemy defeated! Exploration mode restored.");
             }
         }
