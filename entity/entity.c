@@ -89,3 +89,13 @@ void Enemy_Init(Enemy* en, uint32_t id, int32_t x, int32_t y, int32_t level) {
     en->exp_reward = level * 2;
     printf("[Entity] Enemy initialized: ID=%u, Level=%d, Pos=(%d, %d)\n", id, level, x, y);
 }
+
+bool Entity_CheckCollision(Entity* a, Entity* b) {
+    if (!a || !b) return false;
+    return (a->x == b->x && a->y == b->y);
+}
+
+bool Entity_CheckCollisionAt(int32_t x, int32_t y, Entity* e) {
+    if (!e) return false;
+    return (x == e->x && y == e->y);
+}

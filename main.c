@@ -111,7 +111,7 @@ int main(void) {
                         // Collision check with all active enemies
                         bool blocked = false;
                         for (int i = 0; i < MAX_ENEMIES; i++) {
-                            if (enemy_active[i] && enemies[i].base.x == next_x && enemies[i].base.y == next_y) {
+                            if (enemy_active[i] && Entity_CheckCollisionAt(next_x, next_y, &enemies[i].base)) {
                                 blocked = true;
                                 break;
                             }

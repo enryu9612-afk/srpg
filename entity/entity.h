@@ -94,5 +94,7 @@ void Operator_EquipItem(Operator* op, int32_t inventory_slot);
 
 // Enemy API
 void Enemy_Init(Enemy* en, uint32_t id, int32_t x, int32_t y, int32_t level);
+bool Entity_CheckCollision(Entity* a, Entity* b);
+bool Entity_CheckCollisionAt(int32_t x, int32_t y, Entity* e);
 
 #endif // ENTITY_ENTITY_H
