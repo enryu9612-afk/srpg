@@ -94,4 +94,8 @@ extern const int32_t g_item_database_count;
 bool Inventory_Add(Inventory* inv, Item* item);
 void Inventory_Remove(Inventory* inv, int32_t slot_index);
 
+// Helper API (restored for backward compatibility in tests/build)
+Item* Item_Create(uint32_t id, const char* name, ItemType type, ItemGrade grade);
+void Item_SetEquipment(Item* item, EquipSlot slot, StatBonus bonus);
+
 #endif // ITEM_ITEM_H
