@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "entity/entity.h"
 #include "core/core.h"
 #include "raylib.h"
 
@@ -18,7 +19,9 @@ typedef struct {
 
 typedef enum {
     UI_STATE_GAME,
-    UI_STATE_CHARACTER_MENU
+    UI_STATE_CHARACTER_MENU,
+    UI_STATE_SKILL_SELECT,
+    UI_STATE_TARGETING
 } UIState;
 
 typedef struct {
@@ -39,5 +42,7 @@ void UI_DrawStatRow(Rectangle rect, const char* label, int32_t level, int32_t po
 const char* UI_GetRomanNumeral(int32_t level);
 
 void UI_DrawCharacterMenu(void);
+void UI_DrawSkillMenu(int32_t* selected_index);
+void UI_DrawTargetingOverlay(Entity* target);
 
 #endif // UI_UI_H

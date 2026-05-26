@@ -82,51 +82,73 @@ int main(void) {
         }
 
         if (g_battle_state.current_turn == BATTLE_TURN_PLAYER) {
-            int32_t dx = 0, dy = 0;
-            if (IsKeyPressed(KEY_UP))    dy = -1;
-            else if (IsKeyPressed(KEY_DOWN))  dy = 1;
-            else if (IsKeyPressed(KEY_LEFT))  dx = -1;
-            else if (IsKeyPressed(KEY_RIGHT)) dx = 1;
+            if (g_ui_context.state == UI_STATE_GAME) {
+                int32_t dx = 0, dy = 0;
+                if (IsKeyPressed(KEY_UP))    dy = -1;
+                else if (IsKeyPressed(KEY_DOWN))  dy = 1;
+                else if (IsKeyPressed(KEY_LEFT))  dx = -1;
+                else if (IsKeyPressed(KEY_RIGHT)) dx = 1;
 
-            if (dx != 0 || dy != 0) {
-                int32_t next_x = player.base.x + dx;
-                int32_t next_y = player.base.y + dy;
+                if (dx != 0 || dy != 0) {
+                    int32_t next_x = player.base.x + dx;
+                    int32_t next_y = player.base.y + dy;
 
-                if (Map_IsWalkable(game_map, next_x, next_y)) {
-                    if (next_x == enemy.base.x && next_y == enemy.base.y) {
-                        UI_AddLog("Blocked by an enemy!");
-                    } else {
-                        player.base.x = next_x;
-                        player.base.y = next_y;
-                        Core_UpdateCamera(player.base.x, player.base.y);
-                        UI_AddLog("Moving...");
-                        if (g_battle_state.is_combat_active) {
-                            Battle_NextTurn();
+                    if (Map_IsWalkable(game_map, next_x, next_y)) {
+                        if (next_x == enemy.base.x && next_y == enemy.base.y) {
+                            UI_AddLog("Blocked by an enemy!");
+                        } else {
+                            player.base.x = next_x;
+                            player.base.y = next_y;
+                            Core_UpdateCamera(player.base.x, player.base.y);
+                            UI_AddLog("Moving...");
+                            if (g_battle_state.is_combat_active) {
+                                Battle_NextTurn();
+                            }
                         }
+                    } else {
+                        UI_AddLog("Blocked by a wall!");
                     }
-                } else {
-                    UI_AddLog("Blocked by a wall!");
+                    
+                    if (g_battle_state.is_combat_active) {
+                        Battle_UpdateStatusEffects(&player.base);
+                    }
                 }
-                
-                if (g_battle_state.is_combat_active) {
-                    Battle_UpdateStatusEffects(&player.base);
-                }
-            }
 
-            if (IsKeyPressed(KEY_SPACE)) {
-                int32_t result = Battle_ExecuteAttack(&player, (Entity*)&enemy);
-                if (result > 0) {
-                    char buf[64];
-                    sprintf(buf, "Attack Hit! Dealt %d damage. Enemy HP: %d", result, enemy.hp);
-                    UI_AddLog(buf);
-                    Battle_NextTurn(); 
-                } else if (result == 0) {
-                    UI_AddLog("Attack Missed!");
-                    Battle_NextTurn(); 
-                } else if (result == -1) {
-                    UI_AddLog("Target is too far away!");
-                } else if (result == -2) {
-                    UI_AddLog("Invalid attack target!");
+                if (IsKeyPressed(KEY_S)) {
+                    g_ui_context.state = UI_STATE_SKILL_SELECT;
+                    UI_AddLog("Skill Menu Opened. Select a skill.");
+                }
+            } else if (g_ui_context.state == UI_STATE_SKILL_SELECT) {
+                static int32_t selected_skill = 0;
+                if (IsKeyPressed(KEY_UP)) selected_skill = (selected_skill - 1 + 4) % 4;
+                if (IsKeyPressed(KEY_DOWN)) selected_skill = (selected_skill + 1) % 4;
+                if (IsKeyPressed(KEY_ENTER)) {
+                    g_ui_context.state = UI_STATE_TARGETING;
+                    UI_AddLog("Targeting Mode. Select target and press ENTER.");
+                }
+                if (IsKeyPressed(KEY_ESCAPE)) {
+                    g_ui_context.state = UI_STATE_GAME;
+                    UI_AddLog("Skill selection cancelled.");
+                }
+            } else if (g_ui_context.state == UI_STATE_TARGETING) {
+                if (IsKeyPressed(KEY_ENTER)) {
+                    int32_t result = Battle_ExecuteAttack(&player, (Entity*)&enemy);
+                    if (result > 0) {
+                        char buf[64];
+                        sprintf(buf, "Attack Hit! Dealt %d damage. Enemy HP: %d", result, enemy.hp);
+                        UI_AddLog(buf);
+                        Battle_NextTurn(); 
+                    } else if (result == 0) {
+                        UI_AddLog("Attack Missed!");
+                        Battle_NextTurn(); 
+                    } else {
+                        UI_AddLog("Attack failed or target out of range.");
+                    }
+                    g_ui_context.state = UI_STATE_GAME;
+                }
+                if (IsKeyPressed(KEY_ESCAPE)) {
+                    g_ui_context.state = UI_STATE_GAME;
+                    UI_AddLog("Targeting cancelled.");
                 }
             }
         }
@@ -143,7 +165,6 @@ int main(void) {
             }
         }
 
-        // --- Character Menu Logic ---
         if (IsKeyPressed(KEY_C)) {
             g_ui_context.is_open = !g_ui_context.is_open;
             UI_AddLog(g_ui_context.is_open ? "Menu Opened" : "Menu Closed");
@@ -151,7 +172,11 @@ int main(void) {
 
         Core_Draw();
         BeginMode2D(g_game_camera.camera);
-
+        
+        if (g_ui_context.state == UI_STATE_TARGETING) {
+            UI_DrawTargetingOverlay((Entity*)&enemy);
+        }
+        
         for (int32_t y = 0; y < game_map->height; y++) {
             for (int32_t x = 0; x < game_map->width; x++) {
                 int32_t dx = x - player.base.x;
@@ -208,6 +233,12 @@ int main(void) {
         if (g_ui_context.is_open) {
             UI_DrawCharacterMenu();
         }
+        
+        if (g_ui_context.state == UI_STATE_SKILL_SELECT) {
+            static int32_t selected_skill = 0;
+            UI_DrawSkillMenu(&selected_skill);
+        }
+        
         Core_EndDraw();
     }
 

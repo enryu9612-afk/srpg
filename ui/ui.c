@@ -95,7 +95,7 @@ void UI_DrawCharacterMenu(void) {
     
     // Background dim
     DrawRectangle(0, 0, screenW, screenH, Fade(BLACK, 0.7f));
-
+    
     // 1. Left: Inventory / Quick Slots Area
     Rectangle invRect = { screenW * 0.1f, screenH * 0.2f, 300, screenH * 0.6f };
     UI_DrawCyberWindow(invRect, DARKBLUE, "INVENTORY / QUICK-SLOTS");
@@ -107,20 +107,18 @@ void UI_DrawCharacterMenu(void) {
         DrawRectangleLinesEx(slot, 1, GRAY);
     }
     DrawText("CLICK TO EXPAND", invRect.x + 50, invRect.y + 110, 15, DARKGRAY);
-
+    
     // 2. Right: Info Windows
-    // RED Window (Weapon/Attack)
     Rectangle redRect = { screenW * 0.45f, screenH * 0.2f, 400, 150 };
     UI_DrawCyberWindow(redRect, MAROON, "WEAPON & OFFENSE");
     DrawText("Current: [Iron Sword]", redRect.x + 20, redRect.y + 40, 20, WHITE);
     DrawText("ATK: 15 | Type: Physical", redRect.x + 20, redRect.y + 70, 18, LIGHTGRAY);
-
-    // BLUE Window (Armor/Defense)
+    
     Rectangle blueRect = { screenW * 0.45f, screenH * 0.37f, 400, 150 };
     UI_DrawCyberWindow(blueRect, DARKBLUE, "ARMOR & DEFENSE");
     DrawText("Current: [Cloth Tunic]", blueRect.x + 20, blueRect.y + 40, 20, WHITE);
     DrawText("DEF: 5 | MR: 10", blueRect.x + 20, blueRect.y + 70, 18, LIGHTGRAY);
-
+    
     // 3. Bottom: Stat List (Growth)
     Rectangle statPanel = { screenW * 0.45f, screenH * 0.55f, 400, 220 };
     UI_DrawCyberWindow(statPanel, DARKGRAY, "ORGAN GROWTH");
@@ -128,15 +126,41 @@ void UI_DrawCharacterMenu(void) {
     int32_t row_h = 35;
     int32_t start_y = (int32_t)statPanel.y + 40;
     
-    // Note: These are global/passed values from the Operator struct
-    // We use a dummy for now until integrated with main.c
     const char* labels[] = { "Eye", "Ear", "Tongue", "Hand", "Heart" };
     int32_t levels[] = { 1, 2, 1, 3, 1 };
-    int32_t points = 5; // Dummy point
+    int32_t points = 5;
     bool clicks[5] = {false};
-
+    
     for (int32_t i = 0; i < 5; i++) {
         Rectangle row = { statPanel.x + 20, start_y + (i * row_h), statPanel.width - 40, 30 };
         UI_DrawStatRow(row, labels[i], levels[i], points, &clicks[i]);
     }
+}
+
+void UI_DrawSkillMenu(int32_t* selected_index) {
+    int32_t screenW = GetScreenWidth();
+    int32_t screenH = GetScreenHeight();
+    Rectangle menuRect = { screenW * 0.35f, screenH * 0.3f, 300, 200 };
+    UI_DrawCyberWindow(menuRect, DARKGRAY, "SKILL SELECTION");
+    
+    const char* skills[] = { "Basic Attack", "Slam (Strong)", "Analyze", "Heal" };
+    int32_t skill_count = 4;
+    int32_t row_h = 30;
+    
+    for (int32_t i = 0; i < skill_count; i++) {
+        Rectangle row = { menuRect.x + 20, menuRect.y + 40 + (i * row_h), menuRect.width - 40, 25 };
+        Color rowColor = (*selected_index == i) ? GOLD : Fade(GRAY, 0.3f);
+        DrawRectangleRec(row, rowColor);
+        DrawText(skills[i], row.x + 10, row.y + 5, 18, BLACK);
+    }
+}
+
+void UI_DrawTargetingOverlay(Entity* target) {
+    if (target == NULL) return;
+    
+    int32_t tx = target->x * TILE_SIZE;
+    int32_t ty = target->y * TILE_SIZE;
+    
+    DrawRectangleLinesEx((Rectangle){tx, ty, TILE_SIZE, TILE_SIZE}, 3, RED);
+    DrawText("TARGET LOCKED", tx, ty - 20, 15, RED);
 }
