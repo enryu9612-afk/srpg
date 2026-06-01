@@ -263,6 +263,9 @@ int main(void) {
                     else if (distSq < 400) color = DARKGRAY;
                     else color = (Color){40, 40, 40, 255};
                     DrawText(symbol, x * TILE_SIZE + offset_x, y * TILE_SIZE + offset_y, wallFontSize, color);
+                    
+                }
+                else{
                     color = (distSq < 100) ? GRAY : (distSq < 400) ? (Color){70, 70, 70, 255} : (Color){30, 30, 30, 255};
                     uint32_t detail_seed = (x * 12345) ^ (y * 67890);
                     if (detail_seed % 100 < 2) { symbol = "*"; color = GOLD; } 
