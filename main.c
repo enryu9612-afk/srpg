@@ -209,7 +209,7 @@ int main(void) {
         if (g_battle_state.current_turn != BATTLE_TURN_PLAYER && any_enemy_alive) {
             static float enemy_timer = 0;
             enemy_timer += GetFrameTime();
-            if (enemy_timer >= 0.5f) { 
+            if (enemy_timer >= 0.1f) { 
                 for (int i = 0; i < MAX_ENEMIES; i++) {
                     if (enemy_active[i]) {
                         Battle_UpdateEnemyAI(&enemies[i], &player, game_map);

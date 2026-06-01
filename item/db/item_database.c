@@ -7,7 +7,7 @@
 const ItemTemplate g_item_database[] = {
     {
         1001, "Iron Sword", ITEM_TYPE_EQUIPMENT, ITEM_GRADE_COMMON,
-        .data.equipment = { EQUIP_SLOT_WEAPON, {5, 0, 0, 0, 0}, 5 }
+        .data.equipment = { EQUIP_SLOT_WEAPON, {10, 0, 0, 0, 0}, 5 }
     },
     {
         1002, "Steel Plate", ITEM_TYPE_EQUIPMENT, ITEM_GRADE_COMMON,
