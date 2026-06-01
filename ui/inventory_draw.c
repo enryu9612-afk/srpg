@@ -22,7 +22,7 @@ void UI_DrawInventory(Inventory* inv, int32_t* selected_slot) {
     
     for (int32_t i = 0; i < MAX_INVENTORY_SLOTS; i++) {
         int32_t r = i / cols;
-        int32_t c = i % cols;
+        int32_t c = i % rows;
         
         Rectangle slotRect = { 
             invRect.x + padding + (c * (slot_w + padding)), 

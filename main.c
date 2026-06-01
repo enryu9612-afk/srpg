@@ -119,14 +119,13 @@ int main(void) {
 
                         if (blocked) {
                             UI_AddLog("Blocked by an enemy!");
-                        } else {
+                        
                             player.base.x = next_x;
                             player.base.y = next_y;
                             Core_UpdateCamera(player.base.x, player.base.y);
                             UI_AddLog("Moving...");
                             Battle_NextTurn(); // Move counts as a turn
-                        } else {
-                    } else {
+                        }
                         UI_AddLog("Blocked by a wall!");
                     }
                 }
@@ -190,8 +189,7 @@ int main(void) {
                         }
                         
                         Battle_NextTurn();
-                        g_ui_context.state = UI_STATE_GAME;
-                    } else {
+                            g_ui_context.state = UI_STATE_GAME;
                         UI_AddLog("No target selected!");
                     }
                 }
@@ -283,7 +281,6 @@ int main(void) {
                     else color = (Color){40, 40, 40, 255};
                     
                     DrawText(symbol, x * TILE_SIZE + offset_x, y * TILE_SIZE + offset_y, wallFontSize, color);
-                } else {
                     color = (distSq < 100) ? GRAY : (distSq < 400) ? (Color){70, 70, 70, 255} : (Color){30, 30, 30, 255};
                     uint32_t detail_seed = (x * 12345) ^ (y * 67890);
                     if (detail_seed % 100 < 2) { symbol = "*"; color = GOLD; } 
