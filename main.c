@@ -19,7 +19,7 @@ int main(void) {
         fprintf(stderr, "[Main Error] Core initialization failed. Exiting.\n");
         return 1;
     }
-    SetExitKey(KEY_NULL); // Fix: Prevent ESC from closing the game
+    SetExitKey(KEY_NULL); 
     Core_InitCamera();
     UI_Init();
 
@@ -36,14 +36,12 @@ int main(void) {
     Enemy enemies[MAX_ENEMIES];
     bool enemy_active[MAX_ENEMIES] = {false};
     
-    // Spawn multiple enemies in different rooms
     int32_t enemies_spawned = 0;
     int32_t spawn_attempts = 0;
     while (enemies_spawned < 5 && spawn_attempts < 100) {
         spawn_attempts++;
         int32_t ex, ey;
-        if (Map_FindRoomSpawnPos(game_map, 0, 0, &ex, &ey)) { // Simplified search
-            // Check if this position is already occupied by another enemy
+        if (Map_FindRoomSpawnPos(game_map, 0, 0, &ex, &ey)) {
             bool occupied = false;
             for (int i = 0; i < MAX_ENEMIES; i++) {
                 if (enemy_active[i] && enemies[i].base.x == ex && enemies[i].base.y == ey) {
@@ -51,11 +49,9 @@ int main(void) {
                     break;
                 }
             }
-            
             if (!occupied) {
                 int32_t idx = -1;
                 for(int i=0; i<MAX_ENEMIES; i++) if(!enemy_active[i]) { idx = i; break; }
-                
                 if (idx != -1) {
                     Enemy_Init(&enemies[idx], 100 + idx, ex, ey, 1);
                     enemy_active[idx] = true;
@@ -86,7 +82,6 @@ int main(void) {
     while (g_game_state.is_running) {
         Core_Update();
 
-        // Check for any active combat for the log panel
         bool any_enemy_alive = false;
         for (int i = 0; i < MAX_ENEMIES; i++) {
             if (enemy_active[i] && enemies[i].hp > 0) {
@@ -112,7 +107,6 @@ int main(void) {
                         blocked = true;
                         UI_AddLog("Blocked by a wall!");
                     } else {
-                        // Collision check with all active enemies
                         for (int i = 0; i < MAX_ENEMIES; i++) {
                             if (enemy_active[i] && Entity_CheckCollisionAt(next_x, next_y, &enemies[i].base)) {
                                 blocked = true;
@@ -123,16 +117,13 @@ int main(void) {
                     }
 
                     if (blocked) {
-                        // Blocked: do nothing or play sound
+                        // Blocked
                     } else {
                         player.base.x = next_x;
                         player.base.y = next_y;
                         Core_UpdateCamera(player.base.x, player.base.y);
-                    }
-                            UI_AddLog("Moving...");
-                            Battle_NextTurn(); // Move counts as a turn
-                        }
-                        UI_AddLog("Blocked by a wall!");
+                        UI_AddLog("Moving...");
+                        Battle_NextTurn(); 
                     }
                 }
 
@@ -157,8 +148,6 @@ int main(void) {
                 if (dx != 0 || dy != 0) {
                     int32_t next_tx = (int32_t)target_cursor.x + dx;
                     int32_t next_ty = (int32_t)target_cursor.y + dy;
-                    
-                    // Limit cursor to attack range (Chebyshev)
                     int32_t dist = (abs(next_tx - player.base.x) > abs(next_ty - player.base.y)) 
                                    ? abs(next_tx - player.base.x) : abs(next_ty - player.base.y);
                     
@@ -168,7 +157,6 @@ int main(void) {
                     }
                 }
 
-                // Update selected enemy based on cursor position
                 selected_enemy_index = -1;
                 for (int i = 0; i < MAX_ENEMIES; i++) {
                     if (enemy_active[i] && enemies[i].base.x == (int32_t)target_cursor.x && enemies[i].base.y == (int32_t)target_cursor.y) {
@@ -187,15 +175,13 @@ int main(void) {
                         } else if (result == 0) {
                             UI_AddLog("Attack Missed!");
                         }
-                        
-                        // Check if enemy died
                         if (enemies[selected_enemy_index].hp <= 0) {
                             enemy_active[selected_enemy_index] = false;
                             UI_AddLog("Enemy eliminated!");
                         }
-                        
                         Battle_NextTurn();
-                            g_ui_context.state = UI_STATE_GAME;
+                        g_ui_context.state = UI_STATE_GAME;
+                    } else {
                         UI_AddLog("No target selected!");
                     }
                 }
@@ -208,7 +194,6 @@ int main(void) {
                 if (IsKeyPressed(KEY_RIGHT)) UI_MoveInventorySlot(&g_inventory_selected_slot, 1);
                 if (IsKeyPressed(KEY_UP)) UI_MoveInventorySlot(&g_inventory_selected_slot, 2);
                 if (IsKeyPressed(KEY_DOWN)) UI_MoveInventorySlot(&g_inventory_selected_slot, 3);
-                
                 if (IsKeyPressed(KEY_E)) {
                     Operator_EquipItem(&player, g_inventory_selected_slot);
                     UI_AddLog("Attempting to equip/use item...");
@@ -220,12 +205,10 @@ int main(void) {
             }
         }
 
-        // Enemy Turn Logic
         if (g_battle_state.current_turn != BATTLE_TURN_PLAYER && any_enemy_alive) {
             static float enemy_timer = 0;
             enemy_timer += GetFrameTime();
             if (enemy_timer >= 0.5f) { 
-                // Simple AI: find a random active enemy to act
                 for (int i = 0; i < MAX_ENEMIES; i++) {
                     if (enemy_active[i]) {
                         Battle_UpdateEnemyAI(&enemies[i], &player, game_map);
@@ -245,19 +228,15 @@ int main(void) {
 
         Core_Draw();
         BeginMode2D(g_game_camera.camera);
-        
-        // --- Range Visualization ---
         if (g_ui_context.state == UI_STATE_TARGETING) {
             for (int32_t dy = -PLAYER_ATTACK_RANGE; dy <= PLAYER_ATTACK_RANGE; dy++) {
                 for (int32_t dx = -PLAYER_ATTACK_RANGE; dx <= PLAYER_ATTACK_RANGE; dx++) {
-                    if (dx == 0 && dy == 0) continue;
+                    if (dx == 0 && dy == 0) { continue; }
                     DrawRectangle((player.base.x + dx) * TILE_SIZE, (player.base.y + dy) * TILE_SIZE, TILE_SIZE, TILE_SIZE, Fade(ORANGE, 0.3f));
                 }
             }
-            // Draw Targeting Cursor
             DrawRectangleLinesEx((Rectangle){target_cursor.x * TILE_SIZE, target_cursor.y * TILE_SIZE, TILE_SIZE, TILE_SIZE}, 3, RED);
         }
-        
         for (int32_t y = 0; y < game_map->height; y++) {
             for (int32_t x = 0; x < game_map->width; x++) {
                 int32_t dx = x - player.base.x;
@@ -269,23 +248,19 @@ int main(void) {
                 int floorFontSize = 8;
                 int offset_x = (TILE_SIZE - 8) / 2; 
                 int offset_y = (TILE_SIZE - 12) / 2;
-
                 if (game_map->tiles[y * game_map->width + x] == TILE_WALL) {
                     bool top = (y > 0 && game_map->tiles[(y-1) * game_map->width + x] == TILE_WALL);
                     bool bot = (y < game_map->height-1 && game_map->tiles[(y+1) * game_map->width + x] == TILE_WALL);
                     bool lft = (x > 0 && game_map->tiles[y * game_map->width + (x-1)] == TILE_WALL);
                     bool rgt = (x < game_map->width-1 && game_map->tiles[y * game_map->width + (x+1)] == TILE_WALL);
-
                     if (top && bot && lft && rgt) symbol = "#";
                     else if (top && bot) symbol = "|";
                     else if (lft && rgt) symbol = "#";
                     else if (top || bot || lft || rgt) symbol = "+";
                     else symbol = "#";
-
                     if (distSq < 100) color = LIGHTGRAY;
                     else if (distSq < 400) color = DARKGRAY;
                     else color = (Color){40, 40, 40, 255};
-                    
                     DrawText(symbol, x * TILE_SIZE + offset_x, y * TILE_SIZE + offset_y, wallFontSize, color);
                     color = (distSq < 100) ? GRAY : (distSq < 400) ? (Color){70, 70, 70, 255} : (Color){30, 30, 30, 255};
                     uint32_t detail_seed = (x * 12345) ^ (y * 67890);
@@ -293,41 +268,32 @@ int main(void) {
                     else if (detail_seed % 100 < 4) { symbol = "o"; color = LIME; } 
                     else if (detail_seed % 100 < 6) { symbol = "~"; color = SKYBLUE; } 
                     else { symbol = ".";}
-                    
                     DrawText(symbol, x * TILE_SIZE + offset_x, y * TILE_SIZE + offset_y, floorFontSize, color);
                 }
             }
         }
-
-        // Draw Enemies
         for (int i = 0; i < MAX_ENEMIES; i++) {
             if (enemy_active[i]) {
                 Color eColor = (i == selected_enemy_index) ? YELLOW : RED;
                 DrawText("E", enemies[i].base.x * TILE_SIZE + (TILE_SIZE-10)/2, enemies[i].base.y * TILE_SIZE + (TILE_SIZE-10)/2, TILE_SIZE - 6, eColor);
             }
         }
-
         if (player.base.x >= 0 && player.base.y >= 0) {
             DrawText("@", player.base.x * TILE_SIZE + (TILE_SIZE-10)/2, player.base.y * TILE_SIZE + (TILE_SIZE-10)/2, TILE_SIZE - 6, BLUE);
         }
-
         EndMode2D();
         UI_DrawLogPanel();
-        
         if (g_ui_context.is_open) {
             UI_DrawCharacterMenu();
         }
-        
         if (g_ui_context.state == UI_STATE_INVENTORY) {
             UI_DrawInventory(&player.inventory, &g_inventory_selected_slot);
         }
-        
         Core_EndDraw();
     }
 
     Map_Destroy(game_map);
     Core_Shutdown();
     DEBUG_PRINT("[Main] Game exited cleanly.\n");
-
     return 0;
 }
