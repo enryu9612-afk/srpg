@@ -78,11 +78,12 @@ int main(void) {
 
     Vector2 target_cursor = {0, 0};
     int32_t selected_enemy_index = -1;
+    bool any_enemy_alive = false;
 
     while (g_game_state.is_running) {
         Core_Update();
 
-        bool any_enemy_alive = false;
+        any_enemy_alive = false;
         for (int i = 0; i < MAX_ENEMIES; i++) {
             if (enemy_active[i] && enemies[i].hp > 0) {
                 any_enemy_alive = true;
