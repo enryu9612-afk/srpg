@@ -4,6 +4,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "raylib.h"
+#include <stdio.h>
+
+#ifdef NDEBUG
+    #define DEBUG_PRINT(...) ((void)0)
+#else
+    #define DEBUG_PRINT(...) printf(__VA_ARGS__)
+#endif
 
 #define TILE_SIZE 32
 

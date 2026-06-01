@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "raylib.h"
+#include "core/core.h"
 
 LogPanel g_log_panel = {0};
 UIContext g_ui_context = {UI_STATE_GAME, false, 0};
@@ -12,7 +13,7 @@ void UI_Init(void) {
     g_log_panel.head = 0;
     g_ui_context.state = UI_STATE_GAME;
     g_ui_context.is_open = false;
-    printf("[UI] Log system initialized.\n");
+    DEBUG_PRINT("[UI] Log system initialized.\n");
 }
 
 void UI_AddLog(const char* text) {
@@ -165,4 +166,3 @@ void UI_DrawTargetingOverlay(Entity* target) {
     DrawRectangleLinesEx((Rectangle){tx, ty, TILE_SIZE, TILE_SIZE}, 3, RED);
     DrawText("TARGET LOCKED", tx, ty - 20, 15, RED);
 }
-

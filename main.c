@@ -13,7 +13,7 @@
 #define PLAYER_ATTACK_RANGE 1
 
 int main(void) {
-    printf("[Main] Starting Roguelike SRPG - Phase 5 Integration...\n");
+    DEBUG_PRINT("[Main] Starting Roguelike SRPG - Phase 5 Integration...\n");
 
     if (!Core_Init()) {
         fprintf(stderr, "[Main Error] Core initialization failed. Exiting.\n");
@@ -323,7 +323,7 @@ int main(void) {
 
     Map_Destroy(game_map);
     Core_Shutdown();
-    printf("[Main] Game exited cleanly.\n");
+    DEBUG_PRINT("[Main] Game exited cleanly.\n");
 
     return 0;
 }
