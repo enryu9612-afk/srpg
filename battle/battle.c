@@ -93,11 +93,8 @@ void Battle_UpdateEnemyAI(Enemy* enemy, Operator* player, Map* map) {
     int32_t next_x = enemy->base.x + move_x;
     int32_t next_y = enemy->base.y + move_y;
 
-    // Collision Check (Wall + Player)
-    bool blocked = false;
-    if (next_x < 0 || next_x >= map->width || next_y < 0 || next_y >= map->height) blocked = true;
-    else if (map->tiles[next_y * map->width + next_x] == 0) blocked = true; // TILE_WALL = 0
-    else if (next_x == player->base.x && next_y == player->base.y) blocked = true;
+    // Collision Check (Wall)
+    bool blocked = !Map_IsWalkable(map, next_x, next_y);
 
     if (blocked) {
         // Try orthogonal move for avoidance
@@ -105,8 +102,7 @@ void Battle_UpdateEnemyAI(Enemy* enemy, Operator* player, Map* map) {
             // Try moving Y instead
             int32_t try_y = (dy > 0) ? 1 : -1;
             int32_t try_next_y = enemy->base.y + try_y;
-            if (try_next_y >= 0 && try_next_y < map->height && 
-                map->tiles[try_next_y * map->width + enemy->base.x] != 0 &&
+            if (Map_IsWalkable(map, enemy->base.x, try_next_y) && 
                 !(enemy->base.x == player->base.x && try_next_y == player->base.y)) {
                 enemy->base.y = try_next_y;
             }
@@ -114,15 +110,19 @@ void Battle_UpdateEnemyAI(Enemy* enemy, Operator* player, Map* map) {
             // Try moving X instead
             int32_t try_x = (dx > 0) ? 1 : -1;
             int32_t try_next_x = enemy->base.x + try_x;
-            if (try_next_x >= 0 && try_next_x < map->width && 
-                map->tiles[enemy->base.y * map->width + try_next_x] != 0 &&
+            if (Map_IsWalkable(map, try_next_x, enemy->base.y) && 
                 !(try_next_x == player->base.x && enemy->base.y == player->base.y)) {
                 enemy->base.x = try_next_x;
             }
         }
     } else {
-        enemy->base.x = next_x;
-        enemy->base.y = next_y;
+        // Check if moving into player
+        if (next_x == player->base.x && next_y == player->base.y) {
+            // Do not move into player's cell, just stay and attack (Attack is handled by Battle_UpdateEnemyAI step 1)
+        } else {
+            enemy->base.x = next_x;
+            enemy->base.y = next_y;
+        }
     }
 }
 
