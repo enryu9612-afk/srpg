@@ -59,20 +59,20 @@ void Operator_Init(Operator* op, uint32_t id, int32_t x, int32_t y) {
 
 void Operator_SetLevel(Operator* op, int32_t level) {
     if (!op) return;
- 
-    // Base stats increase by 1.2x per level
-    float multiplier = powf(1.2f, (float)(level - 1));
- 
-    op->level = level;
-    op->hp = (int32_t)(100 * multiplier);
-    op->max_hp = op->hp;
-    op->attack = (int32_t)(10 * multiplier);
-    op->defense = (int32_t)(5 * multiplier);
-    op->accuracy = (int32_t)(80 * multiplier);
-    op->evasion = (int32_t)(10 * multiplier);
-    op->magic_res = (int32_t)(10 * multiplier);
     
-    printf("[Entity] Operator level updated to %d. Multiplier: %.2f\n", level, multiplier);
+    // Use double for higher precision as per S-Design constitution
+    double multiplier = pow(1.2, (double)(level - 1));
+
+    op->level = level;
+    op->hp = (int32_t)(100.0 * multiplier);
+    op->max_hp = op->hp;
+    op->attack = (int32_t)(10.0 * multiplier);
+    op->defense = (int32_t)(5.0 * multiplier);
+    op->accuracy = (int32_t)(80.0 * multiplier);
+    op->evasion = (int32_t)(10.0 * multiplier);
+    op->magic_res = (int32_t)(10.0 * multiplier);
+    
+    printf("[Entity] Operator level updated to %d. Multiplier: %.2f\n", level, (float)multiplier);
 }
 
 void Enemy_Init(Enemy* en, uint32_t id, int32_t x, int32_t y, int32_t level) {

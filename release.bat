@@ -4,8 +4,8 @@ echo [Building SRPG - STANDALONE RELEASE MODE]
 set CC=gcc
 :: Added -O2 for optimization and -DNDEBUG to disable debug logs
 set CFLAGS=-O2 -Wall -Wextra -std=c11 -I. -DNDEBUG
-:: Added -static to embed all libraries (including CRT) into the EXE
-set LDFLAGS=-L"C:/raylib/lib" -lraylib -lgdi32 -lwinmm -static
+:: Added -static and -lm to embed all libraries (including CRT and Math) into the EXE
+set LDFLAGS=-L"C:/raylib/lib" -lraylib -lgdi32 -lwinmm -lm -static
 
 echo Compiling core...
 %CC% %CFLAGS% -c core/core.c -o core/core.o
