@@ -125,7 +125,7 @@ int main(void) {
                             Core_UpdateCamera(player.base.x, player.base.y);
                             UI_AddLog("Moving...");
                             Battle_NextTurn(); // Move counts as a turn
-                        } else {
+                        }
                     } else {
                         UI_AddLog("Blocked by a wall!");
                     }
