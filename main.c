@@ -107,22 +107,28 @@ int main(void) {
                     int32_t next_x = player.base.x + dx;
                     int32_t next_y = player.base.y + dy;
 
-                    if (Map_IsWalkable(game_map, next_x, next_y)) {
+                    bool blocked = false;
+                    if (!Map_IsWalkable(game_map, next_x, next_y)) {
+                        blocked = true;
+                        UI_AddLog("Blocked by a wall!");
+                    } else {
                         // Collision check with all active enemies
-                        bool blocked = false;
                         for (int i = 0; i < MAX_ENEMIES; i++) {
                             if (enemy_active[i] && Entity_CheckCollisionAt(next_x, next_y, &enemies[i].base)) {
                                 blocked = true;
+                                UI_AddLog("Blocked by an enemy!");
                                 break;
                             }
                         }
+                    }
 
-                        if (blocked) {
-                            UI_AddLog("Blocked by an enemy!");
-                        
-                            player.base.x = next_x;
-                            player.base.y = next_y;
-                            Core_UpdateCamera(player.base.x, player.base.y);
+                    if (blocked) {
+                        // Blocked: do nothing or play sound
+                    } else {
+                        player.base.x = next_x;
+                        player.base.y = next_y;
+                        Core_UpdateCamera(player.base.x, player.base.y);
+                    }
                             UI_AddLog("Moving...");
                             Battle_NextTurn(); // Move counts as a turn
                         }
